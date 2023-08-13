@@ -53,13 +53,13 @@ ${initialValue}
 
     #[view]
     public fun get_counter(): u64 acquires T {
-        let ret_1 = borrow_global_mut<T>(@self).count;
+        let ret_1 = borrow_global_mut<T>(@demo).count;
         let ret = ret_1;
         ret
     }
 
     fun fun_increase() acquires T  {
-        let _1 = borrow_global_mut<T>(@self).count;
+        let _1 = borrow_global_mut<T>(@demo).count;
         _1 = _1 + 1;
     }
 
