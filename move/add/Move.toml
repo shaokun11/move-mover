@@ -1,0 +1,16 @@
+[package]
+name = "demo"
+version = "1.0.0"
+
+
+[addresses]
+demo = "0xa56cdb5b2c5517642872bb11480da5679378e46f57099bc769b98b587d495549"
+#Evm = "0x2"
+
+[dependencies.AptosFramework]
+git = 'https://github.com/aptos-labs/aptos-core.git'
+rev = 'testnet'
+subdir = 'aptos-move/framework/aptos-framework'
+
+[dependencies]
+#EvmStdlib = { local = "../stdlib" }

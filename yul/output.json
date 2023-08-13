@@ -1,0 +1,108 @@
+{
+    "functions": [
+        {
+            "type": "fun",
+            "name": "getter_fun_count",
+            "exps": [
+                {
+                    "type": "normal",
+                    "content": "let ret_1 = borrow_global_mut<T>(@self).count"
+                },
+                {
+                    "type": "normal",
+                    "content": "ret = ret_1"
+                }
+            ],
+            "inputs": [],
+            "outputs": [
+                "ret"
+            ],
+            "isPublic": false
+        },
+        {
+            "type": "fun",
+            "name": "external_fun_count",
+            "exps": [
+                {
+                    "type": "if",
+                    "condition": "Evm::hasCallValue()",
+                    "exps": [
+                        {
+                            "type": "normal",
+                            "content": "revert_error_ca66f745a3ce8ff40e2ccaf1ad45db7774001b90d25810abd9040049be7bf4bb()"
+                        }
+                    ]
+                },
+                {
+                    "type": "decode",
+                    "params": []
+                },
+                {
+                    "type": "normal",
+                    "content": "let ret = getter_fun_count()"
+                },
+                {
+                    "type": "leave"
+                }
+            ],
+            "inputs": [],
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "isPublic": true
+        },
+        {
+            "type": "fun",
+            "name": "external_fun_increase",
+            "exps": [
+                {
+                    "type": "if",
+                    "condition": "Evm::hasCallValue()",
+                    "exps": [
+                        {
+                            "type": "normal",
+                            "content": "revert_error_ca66f745a3ce8ff40e2ccaf1ad45db7774001b90d25810abd9040049be7bf4bb()"
+                        }
+                    ]
+                },
+                {
+                    "type": "decode",
+                    "params": []
+                },
+                {
+                    "type": "normal",
+                    "content": "fun_increase()"
+                },
+                {
+                    "type": "leave"
+                }
+            ],
+            "inputs": [],
+            "outputs": [],
+            "isPublic": true
+        }
+    ],
+    "storages": {
+        "storage": [
+            {
+                "astId": 3,
+                "contract": "contracts/Counter.sol:Counter",
+                "label": "count",
+                "offset": 0,
+                "slot": "0",
+                "type": "t_uint256"
+            }
+        ],
+        "types": {
+            "t_uint256": {
+                "encoding": "inplace",
+                "label": "uint256",
+                "numberOfBytes": "32"
+            }
+        }
+    }
+}

@@ -1,0 +1,86 @@
+[
+    {
+        "type": "fun",
+        "name": "fun_plus",
+        "exps": [
+            {
+                "type": "normal",
+                "content": "let zero_uint256 = Evm::zero()"
+            },
+            {
+                "type": "normal",
+                "content": "var = zero_uint256"
+            },
+            {
+                "type": "normal",
+                "content": "let _1 = var_a"
+            },
+            {
+                "type": "normal",
+                "content": "let expr = _1"
+            },
+            {
+                "type": "normal",
+                "content": "let _2 = var_b"
+            },
+            {
+                "type": "normal",
+                "content": "let expr_1 = _2"
+            },
+            {
+                "type": "normal",
+                "content": "let expr_2 = Evm::add(expr, expr_1)"
+            },
+            {
+                "type": "normal",
+                "content": "var = expr_2"
+            },
+            {
+                "type": "leave"
+            }
+        ],
+        "inputs": [
+            "var_a",
+            "var_b"
+        ],
+        "outputs": [
+            "var"
+        ],
+        "isPublic": false
+    },
+    {
+        "type": "fun",
+        "name": "external_fun_plus",
+        "exps": [
+            {
+                "type": "if",
+                "condition": "Evm::hasCallValue()",
+                "exps": [
+                    "revert(ca66f745a3ce8ff40e2ccaf1ad45db7774001b90d25810abd9040049be7bf4bb)"
+                ]
+            },
+            {
+                "type": "decode",
+                "params": [
+                    "param",
+                    "param_1"
+                ]
+            },
+            {
+                "type": "normal",
+                "content": "let ret = fun_plus(param,param_1)"
+            },
+            {
+                "type": "leave"
+            }
+        ],
+        "inputs": [
+            "a",
+            "b"
+        ],
+        "outputs": [
+            ""
+        ],
+        "isPublic": true
+    }
+]
