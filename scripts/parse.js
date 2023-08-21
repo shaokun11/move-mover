@@ -1,22 +1,24 @@
 let contractName = "Counter"
 
 // let source = require(`../yul/${contractName}.json`)
-let abi = require(`../artifacts/contracts/${contractName}.sol/${contractName}.json`).abi
 let fs = require("fs")
 
 const {exec } = require('child_process')
+
+let stacks = []
 
 //构造函数
 let source
 //合约代码
 let statements
+let usingStorage = false
 
-const CodeTypes = {
-    FunExp: "fun",
-    IfExp: "if",
-    DecodeExp: "decode",
-    NormalExp: "normal",
-    LeaveExp: "leave"
+let indent = 8;
+let codes = " ".repeat(indent) + "let memory = simple_map::new<U256, U256>();\n"
+
+const VarTypes = {
+    Storage: "storage",
+    Constant: "constant"
 }
 
 
@@ -24,98 +26,81 @@ const CodeTypes = {
 let deps = {}
 let functions = []
 let storages
+let abi
 let currentFun
 
+let sources = []
+let vars = {}
+let memory = {}
+let scope = "global"
+let exps = []
+
+const CodeTypes = {
+    If: "if",
+    Skip: "skip",
+    Execute: "execute",
+    Declare: "declare",
+}
+
 async function process(file) {
-    await runCmd(`solc --optimize --ir-optimized --yul-optimizations 'dhfoD[xarrscLMcCTUulmul]:fDnTOc' --ir-optimized-ast-json ${file} -o ./yul --overwrite`)
+    await runCmd(`solc --optimize --ir-optimized-ast-json ${file} -o ./yul --overwrite`)
     let source = JSON.parse(fs.readFileSync(`./yul/${contractName}_opt_yul_ast.json`).toString())
     let constructor = source.code
     let content = source.subObjects[0].code
-    statements = content.block.statements;
+    statements = content.block.statements[0].statements;
 
     let src = await runCmd(`solc --storage-layout ${file}`)
     let regex = /Contract Storage Layout:\s*([\s\S]*)/;
     let match = src.match(regex);
     storages = JSON.parse(match[1])
-    readFunctions(content)
+
+    src = await runCmd(`solc --abi ${file}`)
+    regex = /\[\{.*\}\]/;
+    match = src.match(regex);
+    abi = JSON.parse(match[0])
+
+    src = await runCmd(`solc --hashes ${file}`)
+    generate.functions = readSignature(src)
+    vars[scope] = {}
+    readCode(content.block)
+    generate()
 }
 
-function parseFunction(funName, params) {
-    if(funName == "callvalue") {
-        return "Evm::hasCallValue()"
-    } else if(funName == "zero_value_for_split_uint256") {
-        return "U256::zero()"
-    } else if(funName == "checked_add_uint256") {
-        return `U256::add(${params[0].name}, ${params[1].name})`
-    }
-    else if(funName.startsWith("revert")) {
-        let code = funName.split("_")[2]
-        return `require(false, "${code}")`
-    } else {
-        let funContent = statements.find(i => i.name === funName)
-        let inputs = []
-        let outputs = []
-        let isPublic
-        console.log(`解析到funName`)
-        if(funName.startsWith("external")) {
-            let abiFun = abi.find(i => i.name == funName.split("_")[2])
-            inputs = abiFun.inputs
-            outputs = abiFun.outputs
-            isPublic = true
-        } else {
-            if(funContent.parameters)
-                inputs = funContent.parameters.map(i => i.name)
-            if(funContent.returnVariables)
-                outputs = funContent.returnVariables.map(i => i.name)
-            isPublic = false
-        }
-        let code = funContent.body
-        let fun = {
-            type: CodeTypes.FunExp,
-            name: funName,
-            exps: null,
-            inputs: inputs,
-            outputs: outputs,
-            isPublic: isPublic
-        }
-        currentFun = fun
-        fun.exps = readCode(code)
-        functions.push(fun)
-        return `${funName}(${params ? params.map(i => i.name).join(",") : ""})`
-    }
-}
+function readSignature(src) {
+    const lines = src.split('\n');
+
+// 过滤出有关函数签名的行
+    const signatureLines = lines.filter(line => /^[0-9a-f]{8}:/.test(line));
+
+// 将每行转换为所需的对象格式
+    return signatureLines.map(line => {
+        const parts = line.split(':');
+        const signature = parts[0].trim();
+
+        const match = parts[1].trim().match(/([a-z_]+)\((.*)\)/i) || parts[1].trim().match(/([a-z_]+)()/i);
+        const funName = match[1];
+        const abiItem = abi.find(i => i.name == funName)
+        const inputs = abiItem.inputs
+        const outputs = abiItem.outputs
+
+        return {
+            funName,
+            signature,
+            inputs,
+            outputs
+        };
+    });
 
 
-// 读取函数列表 以selector为入口
-function readFunctions() {
-    let selectors;
-    // for(let st of statements) {
-    //     if(st.nodeType == "YulIf" && st.condition.functionName.name == "iszero") {
-    //         let root = st.body.statements[1]
-    //         selectors = root.cases
-    //         break
-    //     }
-    // }
-    let root = statements[0]
-    selectors = root.statements[1].body.statements[1].cases
-    for(let selector of selectors) {
-        if(selector.value == "default")
-            break
-        let root = selector.body.statements[0].expression
-        let funName = root.functionName.name
-        parseFunction(funName)
-    }
-
-    fs.writeFileSync("./yul/output.json", JSON.stringify({
-        functions: functions,
-        storages: storages
-    }, null, 4))
 }
 
 function readCode(code) {
     let exps = []
     for(let statement of code.statements) {
         switch(statement.nodeType) {
+            case "YulSwitch":
+                exps.push(readSwitch(statement.cases, statement.expression))
+                break
             case "YulIf":
                 exps.push(readIf(statement.condition, statement.body))
                 break
@@ -123,78 +108,157 @@ function readCode(code) {
                 exps.push(readExpression(statement.expression))
                 break
             case "YulVariableDeclaration":
-                //allocate_unbounded后面的代码直接忽略
-                if(statement.value.nodeType == "YulFunctionCall" && statement.value.functionName.name == "allocate_unbounded") {
-                    exps.push({
-                        type: CodeTypes.LeaveExp
-                    })
-                    return exps
-                }
                 exps.push(readVariable(statement.variables, statement.value, false))
                 break
             case "YulAssignment":
                 exps.push(readVariable(statement.variableNames, statement.value, true))
                 break
+            case "YulBlock":
+                return readCode(statement)
             case "YulLeave":
-                exps.push({
-                    type: CodeTypes.LeaveExp
-                })
+                // exps.push({
+                //     type: CodeTypes.LeaveExp
+                // })
                 break
         }
     }
     return exps
 }
 
+function loadStorage(slot, offset = 0) {
+    let item = storages.storage.find(i => i.slot == slot);
+    return {
+        value: item.label,
+        type: VarTypes.Storage
+    }
+}
+
+function setVar(name, value) {
+    vars[scope][name] = value
+}
+
+function getVar(name) {
+    return vars[scope][name]
+}
+
+function genConstant(value) {
+    return {
+        "type": VarTypes.Constant,
+        "value": value
+    }
+}
+
+function runFun(funName, args) {
+    switch(funName) {
+        case "memoryguard":
+            return genConstant(0)
+        case "calldatasize":
+            if(scope == "global")
+                return genConstant(4)
+            let item = generate.functions.find(i => "0x" + i.signature == scope);
+            return genConstant(32 * item.inputs.length + 4)
+
+        case "mstore":
+            memory[parseInt(args[0])] = args[1]
+            break
+        case "lt":
+            return genConstant(parseInt(args[0]) < parseInt(args[1]) ? 1: 0)
+        case "slt":
+            return genConstant(parseInt(args[0]) < parseInt(args[1]) ? 1: 0)
+        case "callvalue":
+            return genConstant(0)
+        case "add":
+            return genConstant(args[0] + args[1])
+        case "iszero":
+            return genConstant(args[0] == 0 ? 1: 0)
+        case "callvalue":
+            return 0
+        case "not":
+            let length = parseInt(args[0]).toString(2).length;
+            let binaryOnes = '1'.repeat(length);
+            return genConstant(parseInt(binaryOnes, 2) - parseInt(args[0]))
+        case "sload":
+            usingStorage = true
+            return loadStorage(args[0])
+    }
+}
+
+function readSwitch(cases, expression) {
+    let fun = readFun(expression.functionName.name, expression.arguments)
+    codes += " ".repeat(indent) + `let m = ${fun};\n`
+    for(let item of cases) {
+        codes += " ".repeat(indent) + `if(yul::eq(m, ${genU256(item.value.value)})) {\n`
+        indent += 4
+        readCode(item.body)
+        indent -= 4
+        codes += " ".repeat(indent) + "};\n"
+    }
+}
+
+function genU256(value) {
+    return `u256::from_u64(${value})`
+}
+
+function readFun(funName, args) {
+    let params = []
+    if(funName == "mstore") {
+        params.push("&mut memory")
+    }
+    if(funName == "calldatasize" || funName == "calldataload") {
+        params.push("data")
+    }
+
+    if(funName == "return") {
+        funName = "ret"
+    }
+
+    for(let arg of args) {
+        if(arg.nodeType == "YulLiteral")
+            params.push(genU256(arg.value))
+        else if(arg.nodeType == "YulFunctionCall") {
+            params.push(readFun(arg.functionName.name, arg.arguments))
+        } else if(arg.nodeType == "YulIdentifier") {
+            params.push(arg.name)
+        }
+    }
+    // fun = tryRun(fun)
+    let fun = `yul::${funName}(${params.join(',')})`
+    return fun
+}
+
+function tryRun(fun) {
+    for(let arg of fun.params) {
+        if(arg.type != VarTypes.Constant)
+            return fun
+    }
+
+    let value = runFun(fun.name, fun.params.map(i => i.value))
+
+    return value ?? fun
+    // args.map(i => i.nodeType == "YulLiteral" ? i.value: i.name).join(',')
+}
+
 function readVariable(names, values, assign) {
-    let func
-    let type = CodeTypes.NormalExp;
     let left = names.map(i => i.name).join(",")
     let right = null
-    let arg = values.arguments;
+    let args = values.arguments;
     switch(values.nodeType) {
         case "YulFunctionCall": {
             let funName = values.functionName.name
             // abi_decode特殊处理
-            if(funName.startsWith("abi_decode")) {
-                return {
-                    type: CodeTypes.DecodeExp,
-                    params: names.map(i => i.name)
-                }
-            } else if(funName.startsWith(("read_from_storage"))) {
-                let slot
-                let offset
-                //特殊处理，不成立，后面再解决
-                if(arg.length == 2) {
-                    slot = parseInt(arg[0].value);
-                    offset = parseInt(arg[1].value);
-                } else {
-                    offset = 0;
-                    slot = parseInt(arg[0].value);
-                }
-                let label = findVar(slot, offset);
-                right = `borrow_global_mut<T>(@self).${label}`
-            } else if(funName.startsWith("convert_rational_by_to_uint256")) {
-                right = parseInt(arg[0].value)
-            }
-            else {
-                func = parseFunction(funName, arg)
-                right = func
-            }
+            right = readFun(funName, args)
             break
         }
         case "YulIdentifier":
             right = values.name
             break
         case "YulLiteral":
-            if(values.kind == "number") {
-                right = parseInt(values.value)
-            }
+            if(values.kind == "number")
+                right = genU256(values.value)
     }
 
-    return {
-        type: type,
-        content: assign ? `${left} = ${right}`: `let ${left} = ${right}`
-    }
+
+    codes += " ".repeat(indent) + `let ${left} = ${right};\n`
 }
 
 function readExpression(expression) {
@@ -202,47 +266,27 @@ function readExpression(expression) {
     switch(expression.nodeType) {
         case "YulFunctionCall":
             let funName = expression.functionName.name
-            if(funName.startsWith("abi_decode")) {
-                return {
-                    type: CodeTypes.DecodeExp,
-                    params: []
-                }
-            } else if(funName.startsWith("update_storage")) {
-                let label = findVar(arg[0].value, 0);
-                return {
-                    type: CodeTypes.NormalExp,
-                    content: `T.${label} = ${arg[1].name}`
-                }
-            }
-            return {
-                type: "normal",
-                content: `${funName}()`
-            }
+            let fun = readFun(funName, arg)
+            codes += " ".repeat(indent) + `${fun};\n`
     }
 }
 
 function readIf(condition, body) {
-    let ifExp = {
-        type: CodeTypes.IfExp,
-        condition: "",
-        exps: []
-    }
-
+    let exps
+    let cond
     switch(condition.nodeType) {
-        case "YulFunctionCall": 
-            ifExp.condition = parseFunction(condition.functionName.name)
-            break
+        case "YulFunctionCall":
+            let fun = readFun(condition.functionName.name, condition.arguments)
+            cond = `!yul::eq(${fun},u256::zero())`
     }
-    ifExp.exps = readCode(body)
-    return ifExp
+
+    codes += " ".repeat(indent) + `if(${cond}) {\n`
+    indent += 4
+    readCode(body)
+    indent -= 4
+    codes += " ".repeat(indent) + "};\n"
 }
 
-function findVar(slot, offset) {
-    for(let v of storages.storage) {
-        if(v.offset == offset && parseInt(v.slot) == parseInt(slot))
-            return v.label
-    }
-}
 
 function runCmd(cmd) {
     return new Promise((resolve, reject) => {
@@ -255,6 +299,27 @@ function runCmd(cmd) {
             resolve(stdout);
         });
     })
+}
+
+function generateMoveCode(content) {
+    const moveCode = `
+module demo::counter {
+    use demo::yul;
+    use u256::u256;
+    use aptos_std::simple_map;
+    use u256::u256::U256;
+
+    public fun call(data: vector<u8>) {
+${content}
+    }
+}`;
+
+    return moveCode;
+}
+
+function generate() {
+    fs.writeFileSync("./move/contract/sources/modules/Counter.move", generateMoveCode(codes))
+    console.log("run complete")
 }
 
 process(`./contracts/${contractName}.sol`)

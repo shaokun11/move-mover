@@ -38,33 +38,16 @@ function convert(type) {
     }
 }
 
-function generateMoveCode() {
+function generateMoveCode(content) {
     const moveCode = `
-module demo::${contractName} {
-    struct T has key {
-${struct}
-    }
+module demo::counter {
+    use demo::yul;
+    use u256::u256;
+    use aptos_std::simple_map;
+    use u256::u256::U256;
 
-    fun init_module(signer: &signer) {
-        move_to(signer, T{
-${initialValue}
-        });
-    }
-
-    #[view]
-    public fun get_counter(): u64 acquires T {
-        let ret_1 = borrow_global_mut<T>(@demo).count;
-        let ret = ret_1;
-        ret
-    }
-
-    fun fun_increase() acquires T  {
-        let _1 = borrow_global_mut<T>(@demo).count;
-        _1 = _1 + 1;
-    }
-
-    public entry fun increase() acquires T {
-        fun_increase()
+    public fun call(data: vector<u8>) {
+${content}
     }
 }`;
 
