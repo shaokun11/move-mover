@@ -11,10 +11,10 @@ compiled_package_info:
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     u256: 4e9fce03284c0ce0b86c88dd5a46f050cad2f4f33c4cdd29d98f501868558c81
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 82C17281356341400FA470FB65C612A3C5D6C5DBE6B1AB8B3DD55DB2BB144B38
+  source_digest: 5EBFE041446B1187C0FCA6376BAAD52282CA164980D070CD89A474ED963C5C6E
   build_flags:
-    dev_mode: false
-    test_mode: false
+    dev_mode: true
+    test_mode: true
     generate_docs: false
     generate_abis: false
     install_dir: ~
