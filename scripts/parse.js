@@ -1,17 +1,8 @@
 let contractName = "Counter"
-
-// let source = require(`../yul/${contractName}.json`)
 let fs = require("fs")
-
 const {exec } = require('child_process')
 
-let stacks = []
-
-//构造函数
-let source
-//合约代码
 let statements
-let usingStorage = false
 
 let indent = 8;
 
@@ -24,25 +15,11 @@ const VarTypes = {
 let callCodes = ""
 let viewCodes = ""
 
-//当前解析的最外层函数, external的
-let deps = {}
 let functions = []
 let storages
 let abi
-let currentFun
-
-let sources = []
 let vars = {}
-let memory = {}
 let scope = "global"
-let exps = []
-
-const CodeTypes = {
-    If: "if",
-    Skip: "skip",
-    Execute: "execute",
-    Declare: "declare",
-}
 
 function initCode() {
     callCodes = " ".repeat(indent) + "let ret = vector::empty<u8>();\n"
