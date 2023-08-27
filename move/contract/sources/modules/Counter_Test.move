@@ -1,12 +1,15 @@
 
-module demo::counter {
+module demo::counter_test {
     use demo::yul;
     use std::vector;
     use u256::u256;
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
     use u256::u256::U256;
-    
+    use aptos_std::debug;
+    use std::string::utf8;
+    use aptos_framework::account;
+
     struct T has key {
         storage: SimpleMap<U256, U256>
     }
@@ -73,4 +76,21 @@ module demo::counter {
 
     }
 
+    #[test(admin = @0x123)]
+    fun testCall() acquires T {
+        let signer = account::create_account_for_test(@demo);
+        init_module(&signer);
+        debug::print(&utf8(b"counter +10"));
+        let input = x"30f3f0db000000000000000000000000000000000000000000000000000000000000000a";
+        call(input);
+
+        debug::print(&utf8(b"counter +10"));
+        let input = x"30f3f0db000000000000000000000000000000000000000000000000000000000000000a";
+        call(input);
+
+        debug::print(&utf8(b"get counter"));
+        let input2 = x"06661abd";
+        let res = view(input2);
+        debug::print(&res);
+    }
 }

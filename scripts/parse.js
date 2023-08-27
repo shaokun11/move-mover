@@ -14,13 +14,15 @@ let statements
 let usingStorage = false
 
 let indent = 8;
-let codes = " ".repeat(indent) + "let memory = simple_map::new<U256, U256>();\n"
+
 
 const VarTypes = {
     Storage: "storage",
     Constant: "constant"
 }
 
+let callCodes = ""
+let viewCodes = ""
 
 //当前解析的最外层函数, external的
 let deps = {}
@@ -42,6 +44,27 @@ const CodeTypes = {
     Declare: "declare",
 }
 
+function initCode() {
+    callCodes = " ".repeat(indent) + "let ret = vector::empty<u8>();\n"
+    callCodes += " ".repeat(indent) + "let memory = simple_map::new<U256, U256>();\n"
+    callCodes += " ".repeat(indent) + "let pstorage = borrow_global_mut<T>(@demo).storage;\n"
+
+    viewCodes = " ".repeat(indent) + "let ret = vector::empty<u8>();\n"
+    viewCodes += " ".repeat(indent) + "let memory = simple_map::new<U256, U256>();\n"
+    viewCodes += " ".repeat(indent) + "let pstorage = borrow_global_mut<T>(@demo).storage;\n"
+}
+
+function addCodes(scope, code) {
+    if(scope == "global") {
+        callCodes += " ".repeat(indent) + `${code}\n`
+        viewCodes += " ".repeat(indent) + `${code}\n`
+    } else if(scope == "call") {
+        callCodes += " ".repeat(indent) + `${code}\n`
+    } else if(scope == "view") {
+        viewCodes += " ".repeat(indent) + `${code}\n`
+    }
+}
+
 async function process(file) {
     await runCmd(`solc --optimize --ir-optimized-ast-json ${file} -o ./yul --overwrite`)
     let source = JSON.parse(fs.readFileSync(`./yul/${contractName}_opt_yul_ast.json`).toString())
@@ -60,9 +83,12 @@ async function process(file) {
     abi = JSON.parse(match[0])
 
     src = await runCmd(`solc --hashes ${file}`)
-    generate.functions = readSignature(src)
-    vars[scope] = {}
+    functions = readSignature(src)
+    scope = "global"
+    initCode()
     readCode(content.block)
+    addCodes("view", "ret")
+    addCodes("call", "borrow_global_mut<T>(@demo).storage = pstorage")
     generate()
 }
 
@@ -82,12 +108,13 @@ function readSignature(src) {
         const abiItem = abi.find(i => i.name == funName)
         const inputs = abiItem.inputs
         const outputs = abiItem.outputs
-
+        const scope = abiItem.stateMutability
         return {
             funName,
             signature,
             inputs,
-            outputs
+            outputs,
+            scope
         };
     });
 
@@ -148,50 +175,25 @@ function genConstant(value) {
     }
 }
 
-function runFun(funName, args) {
-    switch(funName) {
-        case "memoryguard":
-            return genConstant(0)
-        case "calldatasize":
-            if(scope == "global")
-                return genConstant(4)
-            let item = generate.functions.find(i => "0x" + i.signature == scope);
-            return genConstant(32 * item.inputs.length + 4)
-
-        case "mstore":
-            memory[parseInt(args[0])] = args[1]
-            break
-        case "lt":
-            return genConstant(parseInt(args[0]) < parseInt(args[1]) ? 1: 0)
-        case "slt":
-            return genConstant(parseInt(args[0]) < parseInt(args[1]) ? 1: 0)
-        case "callvalue":
-            return genConstant(0)
-        case "add":
-            return genConstant(args[0] + args[1])
-        case "iszero":
-            return genConstant(args[0] == 0 ? 1: 0)
-        case "callvalue":
-            return 0
-        case "not":
-            let length = parseInt(args[0]).toString(2).length;
-            let binaryOnes = '1'.repeat(length);
-            return genConstant(parseInt(binaryOnes, 2) - parseInt(args[0]))
-        case "sload":
-            usingStorage = true
-            return loadStorage(args[0])
-    }
-}
-
 function readSwitch(cases, expression) {
     let fun = readFun(expression.functionName.name, expression.arguments)
-    codes += " ".repeat(indent) + `let m = ${fun};\n`
+    addCodes(scope, `let m = ${fun};`)
+    let changeScope = false;
     for(let item of cases) {
-        codes += " ".repeat(indent) + `if(yul::eq(m, ${genU256(item.value.value)})) {\n`
+        let value = item.value.value
+        if(scope == "global") {
+            let sign = functions.find(i => "0x" + i.signature == value)
+            scope = sign.scope == "view" ? "view": "call"
+            changeScope = true
+        }
+        addCodes(scope, `if(yul::eq(m, ${genU256(value)})) {`)
         indent += 4
         readCode(item.body)
         indent -= 4
-        codes += " ".repeat(indent) + "};\n"
+        addCodes(scope, "};")
+        if(changeScope) {
+            scope = "global"
+        }
     }
 }
 
@@ -208,9 +210,20 @@ function readFun(funName, args) {
         params.push("data")
     }
 
+    if(funName == "sload" || funName == "sstore") {
+        params.push("&mut pstorage")
+    }
+
     if(funName == "return") {
+        params.push("&mut ret")
+        params.push("&mut memory")
         funName = "ret"
     }
+
+    if(funName == "revert" && scope == "global") {
+        return null
+    }
+
 
     for(let arg of args) {
         if(arg.nodeType == "YulLiteral")
@@ -221,21 +234,8 @@ function readFun(funName, args) {
             params.push(arg.name)
         }
     }
-    // fun = tryRun(fun)
     let fun = `yul::${funName}(${params.join(',')})`
     return fun
-}
-
-function tryRun(fun) {
-    for(let arg of fun.params) {
-        if(arg.type != VarTypes.Constant)
-            return fun
-    }
-
-    let value = runFun(fun.name, fun.params.map(i => i.value))
-
-    return value ?? fun
-    // args.map(i => i.nodeType == "YulLiteral" ? i.value: i.name).join(',')
 }
 
 function readVariable(names, values, assign) {
@@ -258,7 +258,7 @@ function readVariable(names, values, assign) {
     }
 
 
-    codes += " ".repeat(indent) + `let ${left} = ${right};\n`
+    addCodes(scope, `let ${left} = ${right};`)
 }
 
 function readExpression(expression) {
@@ -267,7 +267,10 @@ function readExpression(expression) {
         case "YulFunctionCall":
             let funName = expression.functionName.name
             let fun = readFun(funName, arg)
-            codes += " ".repeat(indent) + `${fun};\n`
+            if(fun) {
+                addCodes(scope, `${fun};`)
+            }
+
     }
 }
 
@@ -280,11 +283,11 @@ function readIf(condition, body) {
             cond = `!yul::eq(${fun},u256::zero())`
     }
 
-    codes += " ".repeat(indent) + `if(${cond}) {\n`
+    addCodes(scope, `if(${cond}) {`)
     indent += 4
     readCode(body)
     indent -= 4
-    codes += " ".repeat(indent) + "};\n"
+    addCodes(scope, `};`)
 }
 
 
@@ -301,16 +304,33 @@ function runCmd(cmd) {
     })
 }
 
-function generateMoveCode(content) {
+function generateMoveCode() {
     const moveCode = `
 module demo::counter {
     use demo::yul;
+    use std::vector;
     use u256::u256;
     use aptos_std::simple_map;
+    use aptos_std::simple_map::SimpleMap;
     use u256::u256::U256;
+    
+    struct T has key {
+        storage: SimpleMap<U256, U256>
+    }
 
-    public fun call(data: vector<u8>) {
-${content}
+    entry fun init_module(account: &signer) {
+        move_to(account, T {
+            storage: simple_map::new<U256, U256>(),
+        });
+    }
+
+    public entry fun call(data: vector<u8>) acquires T  {
+${callCodes}
+    }
+    
+    #[view]
+    public fun view(data: vector<u8>): vector<u8> acquires T  {
+${viewCodes}
     }
 }`;
 
@@ -318,7 +338,7 @@ ${content}
 }
 
 function generate() {
-    fs.writeFileSync("./move/contract/sources/modules/Counter.move", generateMoveCode(codes))
+    fs.writeFileSync("./move/contract/sources/modules/Counter.move", generateMoveCode())
     console.log("run complete")
 }
 
