@@ -4,8 +4,7 @@ version = "1.0.0"
 
 
 [addresses]
-demo = "0xa56cdb5b2c5517642872bb11480da5679378e46f57099bc769b98b587d495549"
-#Evm = "0x2"
+demo = "1a49e06f2a17349bd6b0cb46b79c740c05ce6ec64f049c63e970c164d7f8ec19"
 
 [dependencies.AptosFramework]
 git = 'https://github.com/aptos-labs/aptos-core.git'
@@ -15,6 +14,3 @@ subdir = 'aptos-move/framework/aptos-framework'
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
 rev = "v0.3.9"
-
-[dependencies]
-#EvmStdlib = { local = "../stdlib" }
