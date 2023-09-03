@@ -1,4 +1,4 @@
-module demo::bytecode {
+module demo::usdc {
     use std::vector;
     use std::signer;
     use aptos_std::simple_map;
@@ -29,7 +29,7 @@ module demo::bytecode {
 
     entry fun init_module(account: &signer) {
         move_to(account, T {
-            storage: simple_map::new<u256, u256>(),
+            storage: simple_map::create<u256, u256>(),
             runtime: vector::empty(),
             construct: vector::empty(),
             log3Event: new_event_handle<Log3Event>(account)
@@ -58,7 +58,7 @@ module demo::bytecode {
     fun run(code: vector<u8>, data: vector<u8>): vector<u8> acquires T {
         let stack = &mut vector::empty<u256>();
         let move_ret = vector::empty<u8>();
-        let memory = &mut simple_map::new<u256, u256>();
+        let memory = &mut simple_map::create<u256, u256>();
         let global = borrow_global_mut<T>(@demo);
         let len = vector::length(&code);
         let i = 0;
@@ -77,101 +77,101 @@ module demo::bytecode {
                 move_ret = readBytes(memory, pos, end);
                 break
             }
-            //add
+                //add
             else if(opcode == 0x01) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a + b);
                 i = i + 1;
             }
-            //mul
+                //mul
             else if(opcode == 0x02) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a * b);
                 i = i + 1;
             }
-            //sub
+                //sub
             else if(opcode == 0x03) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 if(a >= b) {
-                vector::push_back(stack, a - b);
+                    vector::push_back(stack, a - b);
                 } else {
-                vector::push_back(stack, U256_MAX - b + a);
+                    vector::push_back(stack, U256_MAX - b + a);
                 };
                 i = i + 1;
             }
-            //div
+                //div
             else if(opcode == 0x04) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a / b);
                 i = i + 1;
             }
-            // callvalue
+                // callvalue
             else if(opcode == 0x34) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            //push0
+                //push0
             else if(opcode == 0x5f) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            // push1
+                // push1
             else if(opcode == 0x60)  {
                 let number = *vector::borrow(&code, i + 1);
                 vector::push_back(stack, (number as u256));
                 i = i + 2;
             }
-            // push2
+                // push2
             else if(opcode == 0x61)  {
                 let number = dataToU256(code, ((i + 1) as u256), 2);
                 vector::push_back(stack, number);
                 i = i + 3;
             }
-            // push3
+                // push3
             else if(opcode == 0x62)  {
                 let number = dataToU256(code, ((i + 1) as u256), 3);
                 vector::push_back(stack, number);
                 i = i + 4;
             }
-            // push4
+                // push4
             else if(opcode == 0x63)  {
                 let number = dataToU256(code, ((i + 1) as u256), 4);
                 vector::push_back(stack, number);
                 i = i + 5;
             }
-            // push5
+                // push5
             else if(opcode == 0x64)  {
                 let number = dataToU256(code, ((i + 1) as u256), 5);
                 vector::push_back(stack, number);
                 i = i + 6;
             }
-            // push32
+                // push32
             else if(opcode == 0x7f)  {
                 let number = dataToU256(code, ((i + 1) as u256), 32);
                 vector::push_back(stack, number);
                 i = i + 33;
             }
-            // pop
+                // pop
             else if(opcode == 0x50) {
                 vector::pop_back(stack);
                 i = i + 1
             }
-            //calldataload
+                //calldataload
             else if(opcode == 0x35) {
                 let pos = vector::pop_back(stack);
                 vector::push_back(stack, dataToU256(data, pos, 32));
                 i = i + 1;
             }
-            //calldatasize
+                //calldatasize
             else if(opcode == 0x36) {
                 vector::push_back(stack, (vector::length(&data) as u256));
                 i = i + 1;
             }
-            // mload
+                // mload
             else if(opcode == 0x51) {
                 let pos = vector::pop_back(stack);
                 if(simple_map::contains_key(memory, &pos)) {
@@ -181,7 +181,7 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            // mstore
+                // mstore
             else if(opcode == 0x52) {
                 let pos = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
@@ -189,7 +189,7 @@ module demo::bytecode {
                 i = i + 1;
 
             }
-            // sload
+                // sload
             else if(opcode == 0x54) {
                 let pos = vector::pop_back(stack);
                 if(simple_map::contains_key(&mut global.storage, &pos)) {
@@ -199,28 +199,28 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            // sstore
+                // sstore
             else if(opcode == 0x55) {
                 let pos = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
                 simple_map::upsert(&mut global.storage, pos, value);
                 i = i + 1;
             }
-            //dup1
+                //dup1
             else if(opcode == 0x80) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 1);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup2
+                //dup2
             else if(opcode == 0x81) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 2);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup3
+                //dup3
             else if(opcode == 0x82) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 3);
@@ -228,7 +228,7 @@ module demo::bytecode {
 
                 i = i + 1;
             }
-            //dup4
+                //dup4
             else if(opcode == 0x83) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 4);
@@ -236,72 +236,72 @@ module demo::bytecode {
 
                 i = i + 1;
             }
-            //dup5
+                //dup5
             else if(opcode == 0x84) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 5);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup6
+                //dup6
             else if(opcode == 0x85) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 6);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup7
+                //dup7
             else if(opcode == 0x86) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 7);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup8
+                //dup8
             else if(opcode == 0x87) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 8);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //dup9
+                //dup9
             else if(opcode == 0x88) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - 9);
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //swap1
+                //swap1
             else if(opcode == 0x90) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - 2);
                 i = i + 1;
             }
-            //swap2
+                //swap2
             else if(opcode == 0x91) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - 3);
                 i = i + 1;
             }
-            //swap3
+                //swap3
             else if(opcode == 0x92) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - 4);
                 i = i + 1;
             }
-            //swap4
+                //swap4
             else if(opcode == 0x93) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - 5);
                 i = i + 1;
             }
-            //swap5
+                //swap5
             else if(opcode == 0x94) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - 6);
                 i = i + 1;
             }
-            //iszero
+                //iszero
             else if(opcode == 0x15) {
                 let value = vector::pop_back(stack);
                 if(value == 0) {
@@ -311,7 +311,7 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            //gt
+                //gt
             else if(opcode == 0x11) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -322,7 +322,7 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            //lt
+                //lt
             else if(opcode == 0x10) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -333,7 +333,7 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            //slt
+                //slt
             else if(opcode == 0x12) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -344,21 +344,21 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            //and
+                //and
             else if(opcode == 0x16) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a & b);
                 i = i + 1;
             }
-            //or
+                //or
             else if(opcode == 0x17) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a | b);
                 i = i + 1;
             }
-            //not
+                //not
             else if(opcode == 0x19) {
                 // 10 1010
                 // 6 0101
@@ -366,21 +366,21 @@ module demo::bytecode {
                 vector::push_back(stack, U256_MAX - n);
                 i = i + 1;
             }
-            //shl
+                //shl
             else if(opcode == 0x1b) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
                 vector::push_back(stack, a << (b as u8));
                 i = i + 1;
             }
-            //shr
+                //shr
             else if(opcode == 0x1c) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
                 vector::push_back(stack, a >> (b as u8));
                 i = i + 1;
             }
-            //eq
+                //eq
             else if(opcode == 0x14) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -391,12 +391,12 @@ module demo::bytecode {
                 };
                 i = i + 1;
             }
-            //jump
+                //jump
             else if(opcode == 0x56) {
                 let dest = vector::pop_back(stack);
                 i = (dest as u64) + 1
             }
-            //jumpi
+                //jumpi
             else if(opcode == 0x57) {
                 let dest = vector::pop_back(stack);
                 let condition = vector::pop_back(stack);
@@ -406,11 +406,11 @@ module demo::bytecode {
                     i = i + 1
                 }
             }
-            //jump dest (no action, continue execution)
+                //jump dest (no action, continue execution)
             else if(opcode == 0x5b) {
                 i = i + 1
             }
-            //sha3
+                //sha3
             else if(opcode == 0x20) {
                 let pos = vector::pop_back(stack);
                 let offset = vector::pop_back(stack);
@@ -419,12 +419,12 @@ module demo::bytecode {
                 vector::push_back(stack, value);
                 i = i + 1
             }
-            //codesize
+                //codesize
             else if(opcode == 0x38) {
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1
             }
-            //codecopy
+                //codecopy
             else if(opcode == 0x39) {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
@@ -438,7 +438,7 @@ module demo::bytecode {
                 };
                 i = i + 1
             }
-            //log3
+                //log3
             else if(opcode == 0xa3) {
                 let pos = vector::pop_back(stack);
                 let offset = vector::pop_back(stack);

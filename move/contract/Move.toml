@@ -8,7 +8,11 @@ demo = "ee3a0022969c3afa9a4dde22e7b97f140835a4308f368b88ab790c170e148296"
 
 
 [dependencies.AptosFramework]
-git = 'https://github.com/aptos-labs/aptos-core.git'
-rev = 'testnet'
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
 subdir = 'aptos-move/framework/aptos-framework'
 
+[dependencies.AptosStdlib]
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+subdir = 'aptos-move/framework/aptos-stdlib'

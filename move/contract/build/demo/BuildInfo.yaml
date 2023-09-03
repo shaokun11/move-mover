@@ -10,10 +10,10 @@ compiled_package_info:
     demo: ee3a0022969c3afa9a4dde22e7b97f140835a4308f368b88ab790c170e148296
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 4A2E7099F67226FB4F8ED8373E55A092E73DFC9FAA536C7814FA539CB48996C8
+  source_digest: 0340480A398E2AA6F044E68E4BF789A5DAA52EC0FFA39768BF798A679F28C48D
   build_flags:
-    dev_mode: false
-    test_mode: false
+    dev_mode: true
+    test_mode: true
     generate_docs: false
     generate_abis: false
     install_dir: ~
