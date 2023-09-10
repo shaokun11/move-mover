@@ -8,6 +8,7 @@
     "@openzeppelin/contracts": "^4.9.3",
     "child_process": "^1.0.2",
     "ethers": "^6.7.1",
+    "movement-sdk": "^1.0.3",
     "web3": "^4.1.1"
   }
 }

@@ -61,7 +61,6 @@ module demo::usdc {
         run(sender, borrow_global<T>(@demo).runtime, data)
     }
 
-
     fun run(sender: vector<u8>, code: vector<u8>, data: vector<u8>): vector<u8> acquires T {
         let stack = &mut vector::empty<u256>();
         let move_ret = vector::empty<u8>();
@@ -168,6 +167,12 @@ module demo::usdc {
             else if(opcode == 0x50) {
                 vector::pop_back(stack);
                 i = i + 1
+            }
+            //address
+            else if(opcode == 0x30) {
+                let value = dataToU256(sender, 0, 32);
+                vector::push_back(stack, value);
+                i = i + 1;
             }
             //caller
             else if(opcode == 0x33) {
