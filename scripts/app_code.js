@@ -33,7 +33,7 @@ async function faucet() {
 }
 
 function calculate() {
-    let contract_addr = slice(keccak256(keccak256(bytes)), 12, 20);
+    let contract_addr = slice(keccak256(bytes), 12, 20);
 }
 
 async function start() {
@@ -48,7 +48,7 @@ async function start() {
 
     let resource = await client.getAccountResource(address, `${address}::evmcontract::S`, [])
     let contracts = resource.data.contracts.data;
-    // console.log(contracts)
+    console.log(contracts)
     for(let item of contracts) {
         console.log(item.key, item.value.storage)
     }

@@ -4,7 +4,7 @@ version = "1.0.0"
 
 
 [addresses]
-demo = "ef9a45fb49470e0038ed8c737ba5db0c11cac0d8c1e5f438a3b19418c3abc7ab"
+demo = "eb15b115b6ffaf33accdf5c4b09082c4a051481466282ab62522500ef9171109"
 
 
 [dependencies.AptosFramework]
