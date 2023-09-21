@@ -4,15 +4,25 @@ version = "1.0.0"
 
 
 [addresses]
-demo = "eb15b115b6ffaf33accdf5c4b09082c4a051481466282ab62522500ef9171109"
+demo = "66f14f43127186cf407a5549339ddff467a36c986dc18a5ed4fa1eca66d0c075"
 
 
 [dependencies.AptosFramework]
-git = 'https://github.com/shaokun11/move-me2'
-rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+git = 'https://github.com/aptos-labs/aptos-core'
+rev = 'devnet'
 subdir = 'aptos-move/framework/aptos-framework'
 
 [dependencies.AptosStdlib]
-git = 'https://github.com/shaokun11/move-me2'
-rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+git = 'https://github.com/aptos-labs/aptos-core'
+rev = 'devnet'
 subdir = 'aptos-move/framework/aptos-stdlib'
+
+#[dependencies.AptosFramework]
+#git = 'https://github.com/shaokun11/move-me2'
+#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#subdir = 'aptos-move/framework/aptos-framework'
+#
+#[dependencies.AptosStdlib]
+#git = 'https://github.com/shaokun11/move-me2'
+#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#subdir = 'aptos-move/framework/aptos-stdlib'

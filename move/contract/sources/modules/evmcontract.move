@@ -16,6 +16,8 @@ module demo::evmcontract {
     use aptos_framework::timestamp::now_microseconds;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+    const INVALID_SENDER: u64 = 1;
+    const INVALID_CONTRACT: u64 = 1;
 
     const CONTRACT_DEPLOYED: u64 = 100;
     const CONTRACT_READ_ONLY: u64 = 101;
@@ -44,7 +46,8 @@ module demo::evmcontract {
 
     struct T has key, store {
         storage: SimpleMap<u256, vector<u8>>,
-        runtime: vector<u8>
+        runtime: vector<u8>,
+        balance: u256
     }
 
     struct S has key {
@@ -66,6 +69,7 @@ module demo::evmcontract {
     }
 
     public entry fun deploy(account: &signer, sender: vector<u8>, construct: vector<u8>) acquires S {
+        assert!(vector::length(&sender) == 32, INVALID_SENDER);
         // todo verify caller
         let _account_addr = signer::address_of(account);
         create(account, sender, construct);
@@ -89,7 +93,8 @@ module demo::evmcontract {
         assert!(!simple_map::contains_key(&global.contracts, &contract_addr), CONTRACT_DEPLOYED);
         simple_map::add(&mut global.contracts, contract_addr, T {
             storage: simple_map::create<u256, vector<u8>>(),
-            runtime: x""
+            runtime: x"",
+            balance: 0
         });
 
         let runtime = run(global, sender, contract_addr, construct, x"", false);
@@ -101,6 +106,8 @@ module demo::evmcontract {
         // todo verify caller
         let _account_addr = signer::address_of(account);
         let global = borrow_global_mut<S>(@demo);
+        assert!(vector::length(&sender) == 32, INVALID_SENDER);
+        assert!(simple_map::contains_key(&global.contracts, &contract_addr), INVALID_CONTRACT);
         let contract = simple_map::borrow<vector<u8>, T>(&global.contracts, &contract_addr);
         run(global, sender, copy contract_addr, contract.runtime, data, false);
     }
@@ -116,7 +123,7 @@ module demo::evmcontract {
     fun run(global: &mut S, sender: vector<u8>, contract_addr: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool): vector<u8> {
         let stack = &mut vector::empty<u256>();
         let move_ret = vector::empty<u8>();
-        let memory = &mut simple_map::create<u256, vector<u8>>();
+        let memory = &mut vector::empty<u8>();
         let storage = simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage;
         let len = vector::length(&code);
         let runtime_code = vector::empty<u8>();
@@ -142,8 +149,9 @@ module demo::evmcontract {
             }
             else if(opcode == 0xf3) {
                 let pos = vector::pop_back(stack);
-                let end = vector::pop_back(stack) + pos;
-                move_ret = read_bytes(*memory, pos, end);
+                let len = vector::pop_back(stack);
+                // move_ret = read_bytes(*memory, pos, end);
+                move_ret = slice(*memory, pos, len);
                 break
             }
             //add
@@ -278,7 +286,7 @@ module demo::evmcontract {
                     } else {
                         slice(code, d_pos, end - d_pos)
                     };
-                    simple_map::upsert(memory, m_pos, bytes);
+                    mstore(memory, m_pos, bytes);
                     d_pos = d_pos + 32;
                     m_pos = m_pos + 32;
                 };
@@ -317,7 +325,7 @@ module demo::evmcontract {
             // mload
             else if(opcode == 0x51) {
                 let pos = vector::pop_back(stack);
-                vector::push_back(stack, data_to_u256(read_bytes(*memory, pos, pos + 32), 0, 32));
+                vector::push_back(stack, data_to_u256(slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
             // mstore
@@ -483,8 +491,8 @@ module demo::evmcontract {
             //sha3
             else if(opcode == 0x20) {
                 let pos = vector::pop_back(stack);
-                let offset = vector::pop_back(stack);
-                let bytes = read_bytes(*memory, pos, pos + offset);
+                let len = vector::pop_back(stack);
+                let bytes = slice(*memory, pos, len);
                 // debug::print(&utf8(b"sha3"));
                 // debug::print(&offset);
                 // debug::print(&bytes);
@@ -504,7 +512,7 @@ module demo::evmcontract {
                 let ret_len = vector::pop_back(stack);
                 ret_size = ret_len;
                 let ret_end = ret_len + ret_pos;
-                let params = read_bytes(*memory, m_pos, m_pos + m_len);
+                let params = slice(*memory, m_pos, m_len);
                 let runtime = simple_map::borrow(&mut global.contracts, &dest_addr).runtime;
                 let ret_bytes = run(global, copy contract_addr, dest_addr, runtime, params, readOnly);
                 let index = 0;
@@ -528,9 +536,9 @@ module demo::evmcontract {
                 };
                 let _msg_value = vector::pop_back(stack);
                 let pos = vector::pop_back(stack);
-                let offset = vector::pop_back(stack);
+                let len = vector::pop_back(stack);
                 let salt = u256_to_data(vector::pop_back(stack));
-                let new_codes = read_bytes(*memory, pos, pos + offset);
+                let new_codes = slice(*memory, pos, len);
                 let p = vector::empty<u8>();
                 vector::append(&mut p, x"ff");
                 // must be 20 bytes
@@ -542,7 +550,8 @@ module demo::evmcontract {
                 assert!(!simple_map::contains_key(&mut global.contracts, &new_contract_addr), CONTRACT_DEPLOYED);
                 simple_map::add(&mut global.contracts, new_contract_addr,  T {
                     storage: simple_map::create<u256, vector<u8>>(),
-                    runtime: x""
+                    runtime: x"",
+                    balance: 0
                 });
                 // debug::print(&utf8(b"create2 start"));
                 // debug::print(&p);
@@ -558,15 +567,15 @@ module demo::evmcontract {
             else if(opcode == 0xfd) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
-                debug::print(&read_bytes(*memory, pos, pos + len));
+                debug::print(&slice(*memory, pos, len));
                 assert!(false, (opcode as u64));
                 i = i + 1
             }
             //log1
             else if(opcode == 0xa1) {
                 let pos = vector::pop_back(stack);
-                let offset = vector::pop_back(stack);
-                let data = read_bytes(*memory, pos, pos + offset);
+                let len = vector::pop_back(stack);
+                let data = slice(*memory, pos, len);
                 let topic0 = vector::pop_back(stack);
                 event::emit_event<Log1Event>(
                     &mut global.log1Event,
@@ -581,8 +590,8 @@ module demo::evmcontract {
             //log2
             else if(opcode == 0xa2) {
                 let pos = vector::pop_back(stack);
-                let offset = vector::pop_back(stack);
-                let data = read_bytes(*memory, pos, pos + offset);
+                let len = vector::pop_back(stack);
+                let data = slice(*memory, pos, len);
                 let topic0 = vector::pop_back(stack);
                 let topic1 = vector::pop_back(stack);
                 event::emit_event<Log2Event>(
@@ -599,8 +608,8 @@ module demo::evmcontract {
             //log3
             else if(opcode == 0xa3) {
                 let pos = vector::pop_back(stack);
-                let offset = vector::pop_back(stack);
-                let data = read_bytes(*memory, pos, pos + offset);
+                let len = vector::pop_back(stack);
+                let data = slice(*memory, pos, len);
                 let topic0 = vector::pop_back(stack);
                 let topic1 = vector::pop_back(stack);
                 let topic2 = vector::pop_back(stack);
@@ -626,19 +635,26 @@ module demo::evmcontract {
         move_ret
     }
 
-    fun mstore(memory: &mut simple_map::SimpleMap<u256, vector<u8>>, pos: u256, data: vector<u8>) {
-        if(pos % 32 == 0) {
-            simple_map::upsert(memory, pos, data);
-        } else {
-            let mod = pos % 32;
-            let last_bit = slice(read_value(*memory, pos - mod), 0, mod);
-            vector::append(&mut last_bit, slice(data, 0, 32 - mod));
-            simple_map::upsert(memory, pos - mod, last_bit);
-
-            let next_bit = slice(data, 32 - mod, mod);
-            vector::append(&mut next_bit, slice(read_value(*memory, pos + 32 - mod), mod, 32 - mod));
-            simple_map::upsert(memory, pos + 32 - mod, next_bit);
+    fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
+        let len_m = vector::length(memory);
+        let len_d = vector::length(&data);
+        let p = (pos as u64);
+        while(len_m < p) {
+            vector::push_back(memory, 0);
+            len_m = len_m + 1
         };
+
+        let i = 0;
+        while (i < len_d) {
+            if(len_m <= p + i) {
+                vector::push_back(memory, *vector::borrow(&data, i));
+                len_m = len_m + 1;
+            } else {
+                *vector::borrow_mut(memory, p + i) = *vector::borrow(&data, i);
+            };
+
+            i = i + 1
+        }
     }
 
     fun power(base: u256, exponent: u256): u256 {
@@ -791,6 +807,8 @@ module demo::evmcontract {
         set_time_has_started_for_testing(&aptos);
         init_module(&user);
 
+        // "0x000000000000000000000000892a2b7cF919760e148A0d33C1eb0f44D3b383f8"
+
         //USDC
         let init_code = x"60806040526005805460ff191660121790553480156200001d575f80fd5b5060405162000c6a38038062000c6a83398101604081905262000040916200013e565b8282600362000050838262000249565b5060046200005f828262000249565b50506005805460ff191660ff93909316929092179091555062000311915050565b634e487b7160e01b5f52604160045260245ffd5b5f82601f830112620000a4575f80fd5b81516001600160401b0380821115620000c157620000c162000080565b604051601f8301601f19908116603f01168101908282118183101715620000ec57620000ec62000080565b8160405283815260209250868385880101111562000108575f80fd5b5f91505b838210156200012b57858201830151818301840152908201906200010c565b5f93810190920192909252949350505050565b5f805f6060848603121562000151575f80fd5b83516001600160401b038082111562000168575f80fd5b620001768783880162000094565b945060208601519150808211156200018c575f80fd5b506200019b8682870162000094565b925050604084015160ff81168114620001b2575f80fd5b809150509250925092565b600181811c90821680620001d257607f821691505b602082108103620001f157634e487b7160e01b5f52602260045260245ffd5b50919050565b601f82111562000244575f81815260208120601f850160051c810160208610156200021f5750805b601f850160051c820191505b8181101562000240578281556001016200022b565b5050505b505050565b81516001600160401b0381111562000265576200026562000080565b6200027d81620002768454620001bd565b84620001f7565b602080601f831160018114620002b3575f84156200029b5750858301515b5f19600386901b1c1916600185901b17855562000240565b5f85815260208120601f198616915b82811015620002e357888601518255948401946001909101908401620002c2565b50858210156200030157878501515f19600388901b60f8161c191681555b5050505050600190811b01905550565b61094b806200031f5f395ff3fe608060405234801561000f575f80fd5b50600436106100cb575f3560e01c806340c10f1911610088578063a457c2d711610063578063a457c2d7146101a6578063a9059cbb146101b9578063ace28fa5146101cc578063dd62ed3e146101d9575f80fd5b806340c10f191461016157806370a082311461017657806395d89b411461019e575f80fd5b806306fdde03146100cf578063095ea7b3146100ed57806318160ddd1461011057806323b872dd14610122578063313ce56714610135578063395093511461014e575b5f80fd5b6100d76101ec565b6040516100e491906107a6565b60405180910390f35b6101006100fb36600461080c565b61027c565b60405190151581526020016100e4565b6002545b6040519081526020016100e4565b610100610130366004610834565b610295565b60055460ff165b60405160ff90911681526020016100e4565b61010061015c36600461080c565b6102b8565b61017461016f36600461080c565b6102d9565b005b61011461018436600461086d565b6001600160a01b03165f9081526020819052604090205490565b6100d76102e7565b6101006101b436600461080c565b6102f6565b6101006101c736600461080c565b610375565b60055461013c9060ff1681565b6101146101e736600461088d565b610382565b6060600380546101fb906108be565b80601f0160208091040260200160405190810160405280929190818152602001828054610227906108be565b80156102725780601f1061024957610100808354040283529160200191610272565b820191905f5260205f20905b81548152906001019060200180831161025557829003601f168201915b5050505050905090565b5f336102898185856103ac565b60019150505b92915050565b5f336102a28582856104cf565b6102ad858585610547565b506001949350505050565b5f336102898185856102ca8383610382565b6102d491906108f6565b6103ac565b6102e382826106e9565b5050565b6060600480546101fb906108be565b5f33816103038286610382565b9050838110156103685760405162461bcd60e51b815260206004820152602560248201527f45524332303a2064656372656173656420616c6c6f77616e63652062656c6f77604482015264207a65726f60d81b60648201526084015b60405180910390fd5b6102ad82868684036103ac565b5f33610289818585610547565b6001600160a01b039182165f90815260016020908152604080832093909416825291909152205490565b6001600160a01b03831661040e5760405162461bcd60e51b8152602060048201526024808201527f45524332303a20617070726f76652066726f6d20746865207a65726f206164646044820152637265737360e01b606482015260840161035f565b6001600160a01b03821661046f5760405162461bcd60e51b815260206004820152602260248201527f45524332303a20617070726f766520746f20746865207a65726f206164647265604482015261737360f01b606482015260840161035f565b6001600160a01b038381165f8181526001602090815260408083209487168084529482529182902085905590518481527f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925910160405180910390a3505050565b5f6104da8484610382565b90505f19811461054157818110156105345760405162461bcd60e51b815260206004820152601d60248201527f45524332303a20696e73756666696369656e7420616c6c6f77616e6365000000604482015260640161035f565b61054184848484036103ac565b50505050565b6001600160a01b0383166105ab5760405162461bcd60e51b815260206004820152602560248201527f45524332303a207472616e736665722066726f6d20746865207a65726f206164604482015264647265737360d81b606482015260840161035f565b6001600160a01b03821661060d5760405162461bcd60e51b815260206004820152602360248201527f45524332303a207472616e7366657220746f20746865207a65726f206164647260448201526265737360e81b606482015260840161035f565b6001600160a01b0383165f90815260208190526040902054818110156106845760405162461bcd60e51b815260206004820152602660248201527f45524332303a207472616e7366657220616d6f756e7420657863656564732062604482015265616c616e636560d01b606482015260840161035f565b6001600160a01b038481165f81815260208181526040808320878703905593871680835291849020805487019055925185815290927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef910160405180910390a3610541565b6001600160a01b03821661073f5760405162461bcd60e51b815260206004820152601f60248201527f45524332303a206d696e7420746f20746865207a65726f206164647265737300604482015260640161035f565b8060025f82825461075091906108f6565b90915550506001600160a01b0382165f81815260208181526040808320805486019055518481527fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef910160405180910390a35050565b5f6020808352835180828501525f5b818110156107d1578581018301518582016040015282016107b5565b505f604082860101526040601f19601f8301168501019250505092915050565b80356001600160a01b0381168114610807575f80fd5b919050565b5f806040838503121561081d575f80fd5b610826836107f1565b946020939093013593505050565b5f805f60608486031215610846575f80fd5b61084f846107f1565b925061085d602085016107f1565b9150604084013590509250925092565b5f6020828403121561087d575f80fd5b610886826107f1565b9392505050565b5f806040838503121561089e575f80fd5b6108a7836107f1565b91506108b5602084016107f1565b90509250929050565b600181811c908216806108d257607f821691505b6020821081036108f057634e487b7160e01b5f52602260045260245ffd5b50919050565b8082018082111561028f57634e487b7160e01b5f52601160045260245ffdfea2646970667358221220a6d822ba29fb8310dc1aa94585bb37b546b3f28c10c4154952d71f49fb0d992264736f6c63430008150033000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004555344430000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000045553444300000000000000000000000000000000000000000000000000000000";
         let usdc_addr = create(&user, sender, init_code);
@@ -816,7 +834,7 @@ module demo::evmcontract {
         vector::append(&mut params, to_32bit(usdt_addr));
         debug::print(&params);
         debug::print(&utf8(b"create pair"));
-        // debug::print(&utf8(b"params"));
+        debug::print(&utf8(b"params"));
         call(&user, sender, factory_addr, params);
         // allpair 0
         let calldata = x"1e3dd18b0000000000000000000000000000000000000000000000000000000000000000";
@@ -863,6 +881,7 @@ module demo::evmcontract {
         vector::append(&mut mint_usdc_params, sender);
         // 200 * 1e18
         vector::append(&mut mint_usdc_params, u256_to_data(200000000000000000000));
+        debug::print(&mint_usdc_params);
         call(&user, sender, usdc_addr, mint_usdc_params);
 
         debug::print(&utf8(b"mint usdt"));
