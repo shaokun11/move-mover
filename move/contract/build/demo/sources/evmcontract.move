@@ -16,11 +16,14 @@ module demo::evmcontract {
     use aptos_framework::timestamp::now_microseconds;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+
     const INVALID_SENDER: u64 = 1;
-    const INVALID_CONTRACT: u64 = 1;
+    const INVALID_CONTRACT: u64 = 2;
+
 
     const CONTRACT_DEPLOYED: u64 = 100;
     const CONTRACT_READ_ONLY: u64 = 101;
+    const CALL_CONTRACT_NOT_EXIST: u64 = 102;
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const ZERO_BYTES: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000000";
     struct Log3Event has drop, store {
@@ -526,23 +529,32 @@ module demo::evmcontract {
                 let m_len = vector::pop_back(stack);
                 let ret_pos = vector::pop_back(stack);
                 let ret_len = vector::pop_back(stack);
-                ret_size = ret_len;
-                let ret_end = ret_len + ret_pos;
-                let params = slice(*memory, m_pos, m_len);
-                let runtime = simple_map::borrow(&mut global.contracts, &dest_addr).runtime;
-                let ret_bytes = run(global, copy contract_addr, dest_addr, runtime, params, readOnly);
-                let index = 0;
-                while (ret_pos < ret_end) {
-                    let bytes = if(ret_end - ret_pos >= 32) {
-                        slice(ret_bytes, index, 32)
-                    } else {
-                        slice(ret_bytes, index, ret_end - ret_pos)
+                if(simple_map::contains_key(&global.contracts, &dest_addr)) {
+                    ret_size = ret_len;
+                    let ret_end = ret_len + ret_pos;
+                    let params = slice(*memory, m_pos, m_len);
+                    let runtime = simple_map::borrow(&mut global.contracts, &dest_addr).runtime;
+                    let ret_bytes = run(global, copy contract_addr, dest_addr, runtime, params, readOnly);
+                    let index = 0;
+                    while (ret_pos < ret_end) {
+                        let bytes = if(ret_end - ret_pos >= 32) {
+                            slice(ret_bytes, index, 32)
+                        } else {
+                            slice(ret_bytes, index, ret_end - ret_pos)
+                        };
+                        mstore(memory, ret_pos, bytes);
+                        ret_pos = ret_pos + 32;
+                        index = index + 32;
                     };
-                    mstore(memory, ret_pos, bytes);
-                    ret_pos = ret_pos + 32;
-                    index = index + 32;
+                    vector::push_back(stack, 1);
+                } else {
+                    if(opcode == 0xfa) {
+                        vector::push_back(stack, 0);
+                    } else {
+                        assert!(false, CALL_CONTRACT_NOT_EXIST);
+                    }
+
                 };
-                vector::push_back(stack, 1);
                 i = i + 1
             }
             //create2
@@ -823,7 +835,7 @@ module demo::evmcontract {
         set_time_has_started_for_testing(&aptos);
         init_module(&user);
 
-        let test = x"608060405234801561001057600080fd5b50600080546001600160a01b0319163390811782556040519091907f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a735908290a36101848061005f6000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063893d20e81461003b578063a6f9dae11461005a575b600080fd5b600054604080516001600160a01b039092168252519081900360200190f35b61006d61006836600461011e565b61006f565b005b6000546001600160a01b031633146100c35760405162461bcd60e51b815260206004820152601360248201527221b0b63632b91034b9903737ba1037bbb732b960691b604482015260640160405180910390fd5b600080546040516001600160a01b03808516939216917f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73591a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b60006020828403121561013057600080fd5b81356001600160a01b038116811461014757600080fd5b939250505056fea26469706673582212207acb824b515a1ad7b3dea20f95d8200e5cf691f106e4b5cf4b946a38538b1ea364736f6c63430008110033";
+        let test = x"608060405234801561000f575f80fd5b5060408051808201909152601b81527f4f776e657220636f6e7472616374206465706c6f7965642062793a0000000000602082015261004e9033610091565b5f80546001600160a01b0319163390811782556040519091907f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a735908290a361015b565b6100da82826040516024016100a79291906100fe565b60408051601f198184030181529190526020810180516001600160e01b0390811663319af33360e01b179091526100de16565b5050565b80516a636f6e736f6c652e6c6f67602083015f808483855afa5050505050565b604081525f83518060408401525f5b8181101561012a576020818701810151606086840101520161010d565b505f60608285018101919091526001600160a01b03949094166020840152601f01601f191690910190910192915050565b61017a806101685f395ff3fe608060405234801561000f575f80fd5b5060043610610034575f3560e01c8063893d20e814610038578063a6f9dae114610056575b5f80fd5b5f54604080516001600160a01b039092168252519081900360200190f35b610069610064366004610117565b61006b565b005b5f546001600160a01b031633146100be5760405162461bcd60e51b815260206004820152601360248201527221b0b63632b91034b9903737ba1037bbb732b960691b604482015260640160405180910390fd5b5f80546040516001600160a01b03808516939216917f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73591a35f80546001600160a01b0319166001600160a01b0392909216919091179055565b5f60208284031215610127575f80fd5b81356001600160a01b038116811461013d575f80fd5b939250505056fea2646970667358221220982d52fff33aa79b189170f09884807893b89538190a7c917a5fd05be4a69eb064736f6c63430008150033";
         create(&user, sender, test);
         // "0x000000000000000000000000892a2b7cF919760e148A0d33C1eb0f44D3b383f8"
 
