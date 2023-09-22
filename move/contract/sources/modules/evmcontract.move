@@ -44,6 +44,12 @@ module demo::evmcontract {
         topic1: u256
     }
 
+    struct DeployEvent has drop, store {
+        sender: vector<u8>,
+        nonce: u256,
+        contract_addr: vector<u8>
+    }
+
     struct T has key, store {
         storage: SimpleMap<u256, vector<u8>>,
         runtime: vector<u8>,
@@ -55,7 +61,8 @@ module demo::evmcontract {
         contracts: simple_map::SimpleMap<vector<u8>, T>,
         log1Event: EventHandle<Log1Event>,
         log2Event: EventHandle<Log2Event>,
-        log3Event: EventHandle<Log3Event>
+        log3Event: EventHandle<Log3Event>,
+        deployEvent: EventHandle<DeployEvent>
     }
 
     entry fun init_module(account: &signer) {
@@ -64,7 +71,8 @@ module demo::evmcontract {
             contracts: simple_map::create<vector<u8>, T>(),
             log1Event: new_event_handle<Log1Event>(account),
             log2Event: new_event_handle<Log2Event>(account),
-            log3Event: new_event_handle<Log3Event>(account)
+            log3Event: new_event_handle<Log3Event>(account),
+            deployEvent: new_event_handle<DeployEvent>(account)
         });
     }
 
@@ -99,6 +107,14 @@ module demo::evmcontract {
 
         let runtime = run(global, sender, contract_addr, construct, x"", false);
         simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).runtime = runtime;
+        event::emit_event<DeployEvent>(
+            &mut global.deployEvent,
+            DeployEvent{
+                sender,
+                nonce,
+                contract_addr
+            },
+        );
         contract_addr
     }
 
@@ -807,6 +823,8 @@ module demo::evmcontract {
         set_time_has_started_for_testing(&aptos);
         init_module(&user);
 
+        let test = x"608060405234801561001057600080fd5b50600080546001600160a01b0319163390811782556040519091907f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a735908290a36101848061005f6000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063893d20e81461003b578063a6f9dae11461005a575b600080fd5b600054604080516001600160a01b039092168252519081900360200190f35b61006d61006836600461011e565b61006f565b005b6000546001600160a01b031633146100c35760405162461bcd60e51b815260206004820152601360248201527221b0b63632b91034b9903737ba1037bbb732b960691b604482015260640160405180910390fd5b600080546040516001600160a01b03808516939216917f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73591a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b60006020828403121561013057600080fd5b81356001600160a01b038116811461014757600080fd5b939250505056fea26469706673582212207acb824b515a1ad7b3dea20f95d8200e5cf691f106e4b5cf4b946a38538b1ea364736f6c63430008110033";
+        create(&user, sender, test);
         // "0x000000000000000000000000892a2b7cF919760e148A0d33C1eb0f44D3b383f8"
 
         //USDC
