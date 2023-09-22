@@ -5,7 +5,7 @@ version = "1.0.0"
 
 [addresses]
 demo = "66f14f43127186cf407a5549339ddff467a36c986dc18a5ed4fa1eca66d0c075"
-
+signer = "eb15b115b6ffaf33accdf5c4b09082c4a051481466282ab62522500ef9171109"
 
 [dependencies.AptosFramework]
 git = 'https://github.com/aptos-labs/aptos-core'
