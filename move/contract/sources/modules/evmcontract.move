@@ -15,6 +15,7 @@ module demo::evmcontract {
     use aptos_framework::timestamp::now_microseconds;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+    use demo::evmstorage;
 
     const INVALID_SENDER: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
@@ -206,6 +207,13 @@ module demo::evmcontract {
             //address
             else if(opcode == 0x30) {
                 vector::push_back(stack, data_to_u256(contract_addr, 0, 32));
+                i = i + 1;
+            }
+            //balance
+            else if(opcode == 0x31) {
+                let addr = u256_to_data(vector::pop_back(stack));
+                let (balance, _nonce) = evmstorage::getAccount(addr);
+                vector::push_back(stack, balance);
                 i = i + 1;
             }
             //caller

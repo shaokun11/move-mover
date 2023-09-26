@@ -1,9 +1,9 @@
 module demo::evmtx {
-    use aptos_std::simple_map;
     use demo::evmcontract;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin;
     use demo::evmcontract::call;
+    use demo::evmstorage::{createAccount, update, addBalance};
 
     #[test_only]
     use aptos_framework::account;
@@ -12,31 +12,15 @@ module demo::evmtx {
     use std::vector;
     use aptos_std::debug;
     use std::string::utf8;
+    #[test_only]
+    use demo::evmstorage;
+
 
     const INSUFFICIENT_BALANCE: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
     const INVALID_NONCE: u64 = 3;
 
     const ZERO_ADDR: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000000";
-
-    struct Account has key, store {
-        nonce: u256,
-        addr: vector<u8>,
-        balance: u256,
-        is_contract: bool
-    }
-
-    struct R has key {
-        accounts: simple_map::SimpleMap<vector<u8>, Account>,
-        total_fee: u256
-    }
-
-    entry fun init_module(account: &signer) {
-        move_to(account, R {
-            accounts: simple_map::create<vector<u8>, Account>(),
-            total_fee: 0
-        });
-    }
 
     public entry fun sendTx(
         account: &signer,
@@ -46,70 +30,38 @@ module demo::evmtx {
         nonce: u256,
         data: vector<u8>,
         gas_fee: u256
-    ) acquires R {
+    ) {
         assert!(signer::address_of(account) == @signer, INVALID_SIGNER);
-        let global = borrow_global_mut<R>(@demo);
         coin::transfer<AptosCoin>(account, @demo, (gas_fee as u64));
 
         let deploy_contract = if (to == ZERO_ADDR) true else false;
-        createAccount(global, from, false);
+        createAccount(from, false);
 
         if (deploy_contract) {
             let contract_addr = evmcontract::deploy(account, from, nonce, data, value);
-            createAccount(global, contract_addr, true);
+            createAccount(contract_addr, true);
             to = contract_addr;
         } else {
-            createAccount(global, to, false);
+            createAccount(to, false);
             call(account, from, to, data, value);
         };
 
-        global.total_fee = global.total_fee + gas_fee;
-        update_from(global, from, nonce, value, gas_fee);
-        update_to(global, to, value);
+        update(from, to, nonce, value, gas_fee);
     }
 
-    fun update_to(global: &mut R, to: vector<u8>, value: u256) {
-        let to_account = simple_map::borrow_mut(&mut global.accounts, &to);
-        to_account.balance = to_account.balance + value;
-    }
 
-    fun update_from(global: &mut R, from: vector<u8>, nonce: u256, value: u256, gas_fee: u256) {
-        let from_account = simple_map::borrow_mut(&mut global.accounts, &from);
-        assert!(from_account.balance >= value + gas_fee, INSUFFICIENT_BALANCE);
-        assert!(from_account.nonce == nonce, INVALID_NONCE);
-
-        from_account.balance = from_account.balance - value - gas_fee;
-        from_account.nonce = from_account.nonce + 1;
-    }
-
-    #[view]
-    public fun getAccount(addr: vector<u8>): Account acquires R {
-        *simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr)
-    }
 
     #[view]
     public fun query(from: vector<u8>, to: vector<u8>, data: vector<u8>): vector<u8> {
         evmcontract::view(from, to, data)
     }
 
-    public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) acquires R {
-        let global = borrow_global_mut<R>(@demo);
+    public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
         coin::transfer<AptosCoin>(account, @demo, (amount as u64));
-        createAccount(global, to, false);
-        let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &to);
-        account.balance = account.balance + amount;
+        addBalance(to, amount);
     }
 
-    fun createAccount(global: &mut R, addr: vector<u8>, is_contract: bool) {
-        if (!simple_map::contains_key(&global.accounts, &addr)) {
-            simple_map::add(&mut global.accounts, addr, Account {
-                nonce: 0,
-                addr,
-                balance: 0,
-                is_contract
-            })
-        };
-    }
+
 
     #[test_only]
     fun to_32bit(data: vector<u8>): vector<u8> {
@@ -125,11 +77,12 @@ module demo::evmtx {
     }
 
     #[test(admin = @demo)]
-    fun test() acquires R {
+    fun test() {
         let aptos = account::create_account_for_test(@0x1);
         let caller = account::create_account_for_test(@signer);
         let evm = account::create_account_for_test(@demo);
-        init_module(&evm);
+
+        evmstorage::init_module_for_test(&evm);
         evmcontract::init_module_for_test(&evm);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
             &aptos,

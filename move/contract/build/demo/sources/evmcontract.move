@@ -15,6 +15,7 @@ module demo::evmcontract {
     use aptos_framework::timestamp::now_microseconds;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+    use demo::evmstorage;
 
     const INVALID_SENDER: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
@@ -27,22 +28,22 @@ module demo::evmcontract {
     struct Log3Event has drop, store {
         contract: vector<u8>,
         data: vector<u8>,
-        topic0: u256,
-        topic1: u256,
-        topic2: u256
+        topic0: vector<u8>,
+        topic1: vector<u8>,
+        topic2: vector<u8>
     }
 
     struct Log1Event has drop, store {
         contract: vector<u8>,
         data: vector<u8>,
-        topic0: u256
+        topic0: vector<u8>
     }
 
     struct Log2Event has drop, store {
         contract: vector<u8>,
         data: vector<u8>,
-        topic0: u256,
-        topic1: u256
+        topic0: vector<u8>,
+        topic1: vector<u8>
     }
 
     struct T has key, store {
@@ -206,6 +207,13 @@ module demo::evmcontract {
             //address
             else if(opcode == 0x30) {
                 vector::push_back(stack, data_to_u256(contract_addr, 0, 32));
+                i = i + 1;
+            }
+            //balance
+            else if(opcode == 0x31) {
+                let addr = u256_to_data(vector::pop_back(stack));
+                let (balance, _nonce) = evmstorage::getAccount(addr);
+                vector::push_back(stack, balance);
                 i = i + 1;
             }
             //caller
@@ -573,7 +581,7 @@ module demo::evmcontract {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
-                let topic0 = vector::pop_back(stack);
+                let topic0 = u256_to_data(vector::pop_back(stack));
                 event::emit_event<Log1Event>(
                     &mut global.log1Event,
                     Log1Event{
@@ -589,8 +597,8 @@ module demo::evmcontract {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
-                let topic0 = vector::pop_back(stack);
-                let topic1 = vector::pop_back(stack);
+                let topic0 = u256_to_data(vector::pop_back(stack));
+                let topic1 = u256_to_data(vector::pop_back(stack));
                 event::emit_event<Log2Event>(
                     &mut global.log2Event,
                     Log2Event{
@@ -607,9 +615,9 @@ module demo::evmcontract {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 let data = slice(*memory, pos, len);
-                let topic0 = vector::pop_back(stack);
-                let topic1 = vector::pop_back(stack);
-                let topic2 = vector::pop_back(stack);
+                let topic0 = u256_to_data(vector::pop_back(stack));
+                let topic1 = u256_to_data(vector::pop_back(stack));
+                let topic2 = u256_to_data(vector::pop_back(stack));
                 event::emit_event<Log3Event>(
                     &mut global.log3Event,
                     Log3Event{
