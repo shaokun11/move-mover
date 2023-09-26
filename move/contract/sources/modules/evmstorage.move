@@ -1,5 +1,6 @@
 module demo::evmstorage {
     use aptos_std::simple_map;
+    use demo::util::{checkCaller};
 
     const INSUFFICIENT_BALANCE: u64 = 101;
     const INVALID_NONCE: u64 = 102;
@@ -35,7 +36,8 @@ module demo::evmstorage {
         };
     }
 
-    public fun update(from: vector<u8>, to: vector<u8>, nonce:u256, value: u256, gas_fee: u256) acquires R {
+    public fun update(account: &signer, from: vector<u8>, to: vector<u8>, nonce:u256, value: u256, gas_fee: u256) acquires R {
+        checkCaller(account);
         let global = borrow_global_mut<R>(@demo);
         global.total_fee = global.total_fee + gas_fee;
         let to_account = simple_map::borrow_mut(&mut global.accounts, &to);
@@ -49,7 +51,8 @@ module demo::evmstorage {
         from_account.nonce = from_account.nonce + 1;
     }
 
-    public fun addBalance(to: vector<u8>, amount: u256) acquires R {
+    public fun addBalance(account: &signer, to: vector<u8>, amount: u256) acquires R {
+        checkCaller(account);
         createAccount(to, false);
         let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &to);
         account.balance = account.balance + amount;

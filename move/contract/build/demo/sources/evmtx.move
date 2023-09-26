@@ -8,12 +8,14 @@ module demo::evmtx {
     #[test_only]
     use aptos_framework::account;
     use std::string;
-    use std::signer;
     use std::vector;
     use aptos_std::debug;
     use std::string::utf8;
     #[test_only]
     use demo::evmstorage;
+    use demo::util::checkCaller;
+    #[test_only]
+    use std::signer;
 
 
     const INSUFFICIENT_BALANCE: u64 = 1;
@@ -31,7 +33,7 @@ module demo::evmtx {
         data: vector<u8>,
         gas_fee: u256
     ) {
-        assert!(signer::address_of(account) == @signer, INVALID_SIGNER);
+        checkCaller(account);
         coin::transfer<AptosCoin>(account, @demo, (gas_fee as u64));
 
         let deploy_contract = if (to == ZERO_ADDR) true else false;
@@ -46,7 +48,7 @@ module demo::evmtx {
             call(account, from, to, data, value);
         };
 
-        update(from, to, nonce, value, gas_fee);
+        update(account, from, to, nonce, value, gas_fee);
     }
 
 
@@ -58,7 +60,7 @@ module demo::evmtx {
 
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
         coin::transfer<AptosCoin>(account, @demo, (amount as u64));
-        addBalance(to, amount);
+        addBalance(account, to, amount);
     }
 
 
