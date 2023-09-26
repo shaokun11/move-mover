@@ -83,8 +83,8 @@ module demo::evmtx {
     }
 
     #[view]
-    public fun getBalance(addr: vector<u8>): u256 acquires R {
-        simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr).balance
+    public fun getAccount(addr: vector<u8>): Account acquires R {
+        *simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr)
     }
 
     #[view]
