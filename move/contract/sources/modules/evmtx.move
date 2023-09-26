@@ -26,24 +26,13 @@ module demo::evmtx {
         is_contract: bool
     }
 
-    struct TX has key, store {
-        from: vector<u8>,
-        to: vector<u8>,
-        nonce: u256,
-        gas_fee: u256,
-        contractAddress: vector<u8>,
-        type: u64
-    }
-
     struct R has key {
-        txs: simple_map::SimpleMap<vector<u8>, TX>,
         accounts: simple_map::SimpleMap<vector<u8>, Account>,
         total_fee: u256
     }
 
     entry fun init_module(account: &signer) {
         move_to(account, R {
-            txs: simple_map::create<vector<u8>, TX>(),
             accounts: simple_map::create<vector<u8>, Account>(),
             total_fee: 0
         });
@@ -52,7 +41,6 @@ module demo::evmtx {
     public entry fun sendTx(
         account: &signer,
         value: u256,
-        tx_hash: vector<u8>,
         from: vector<u8>,
         to: vector<u8>,
         nonce: u256,
@@ -65,7 +53,7 @@ module demo::evmtx {
 
         let deploy_contract = if (to == ZERO_ADDR) true else false;
         createAccount(global, from, false);
-        
+
         if (deploy_contract) {
             let contract_addr = evmcontract::deploy(account, from, nonce, data, value);
             createAccount(global, contract_addr, true);
@@ -74,16 +62,6 @@ module demo::evmtx {
             createAccount(global, to, false);
             call(account, from, to, data, value);
         };
-
-        let is_contract = simple_map::borrow_mut(&mut global.accounts, &to).is_contract;
-        simple_map::add(&mut global.txs, tx_hash, TX {
-            from,
-            to,
-            nonce,
-            gas_fee,
-            contractAddress: if (is_contract) to else x"",
-            type: 0
-        });
 
         global.total_fee = global.total_fee + gas_fee;
         update_from(global, from, nonce, value, gas_fee);
@@ -102,6 +80,11 @@ module demo::evmtx {
 
         from_account.balance = from_account.balance - value - gas_fee;
         from_account.nonce = from_account.nonce + 1;
+    }
+
+    #[view]
+    public fun getBalance(addr: vector<u8>): u256 acquires R {
+        simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr).balance
     }
 
     #[view]
@@ -169,15 +152,13 @@ module demo::evmtx {
         let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
         deposit(&caller, 10000000000, alice);
         // debug::print(&borrow_global<R>(@demo).accounts);
-        let tx1_hash = x"0000000000000000000000000000000000000000000000000000000000000001";
         debug::print(&utf8(b"alice transfer 1 apt to bob"));
-        sendTx(&caller, 100000000, tx1_hash, alice, bob, 0, x"", 10000);
+        sendTx(&caller, 100000000, alice, bob, 0, x"", 10000);
         // debug::print(&borrow_global<R>(@demo).accounts);
 
         debug::print(&utf8(b"alice deploy a single contract"));
-        let tx2_hash = x"0000000000000000000000000000000000000000000000000000000000000002";
         let data = x"6080604052348015600e575f80fd5b5060a58061001b5f395ff3fe6080604052348015600e575f80fd5b50600436106030575f3560e01c80632e64cec11460345780636057361d146048575b5f80fd5b5f5460405190815260200160405180910390f35b605760533660046059565b5f55565b005b5f602082840312156068575f80fd5b503591905056fea26469706673582212206a98897a49d701ccfc0a55b6148c8005628cdbc6cfbe2fddb9a8357f498d15e764736f6c63430008150033";
-        sendTx(&caller, 0, tx2_hash, alice, ZERO_ADDR, 1, data, 100000);
+        sendTx(&caller, 0, alice, ZERO_ADDR, 1, data, 100000);
 
         // debug::print(&borrow_global<R>(@demo).accounts);
     }

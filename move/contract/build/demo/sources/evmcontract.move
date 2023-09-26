@@ -45,12 +45,6 @@ module demo::evmcontract {
         topic1: u256
     }
 
-    struct DeployEvent has drop, store {
-        sender: vector<u8>,
-        nonce: u256,
-        contract_addr: vector<u8>
-    }
-
     struct T has key, store {
         storage: SimpleMap<u256, vector<u8>>,
         runtime: vector<u8>
@@ -60,8 +54,7 @@ module demo::evmcontract {
         contracts: simple_map::SimpleMap<vector<u8>, T>,
         log1Event: EventHandle<Log1Event>,
         log2Event: EventHandle<Log2Event>,
-        log3Event: EventHandle<Log3Event>,
-        deployEvent: EventHandle<DeployEvent>
+        log3Event: EventHandle<Log3Event>
     }
 
     entry fun init_module(account: &signer) {
@@ -69,8 +62,7 @@ module demo::evmcontract {
             contracts: simple_map::create<vector<u8>, T>(),
             log1Event: new_event_handle<Log1Event>(account),
             log2Event: new_event_handle<Log2Event>(account),
-            log3Event: new_event_handle<Log3Event>(account),
-            deployEvent: new_event_handle<DeployEvent>(account)
+            log3Event: new_event_handle<Log3Event>(account)
         });
     }
 
