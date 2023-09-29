@@ -1,0 +1,27 @@
+[package]
+name = "demo"
+version = "1.0.0"
+
+
+[addresses]
+demo = "0x11"
+
+[dependencies.AptosFramework]
+git = 'https://github.com/aptos-labs/aptos-core'
+rev = 'devnet'
+subdir = 'aptos-move/framework/aptos-framework'
+
+[dependencies.AptosStdlib]
+git = 'https://github.com/aptos-labs/aptos-core'
+rev = 'devnet'
+subdir = 'aptos-move/framework/aptos-stdlib'
+
+#[dependencies.AptosFramework]
+#git = 'https://github.com/shaokun11/move-me2'
+#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#subdir = 'aptos-move/framework/aptos-framework'
+#
+#[dependencies.AptosStdlib]
+#git = 'https://github.com/shaokun11/move-me2'
+#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#subdir = 'aptos-move/framework/aptos-stdlib'

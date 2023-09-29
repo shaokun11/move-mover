@@ -51,8 +51,6 @@ module demo::evmtx {
         update(account, from, to, nonce, value, gas_fee);
     }
 
-
-
     #[view]
     public fun query(from: vector<u8>, to: vector<u8>, data: vector<u8>): vector<u8> {
         evmcontract::view(from, to, data)
@@ -62,8 +60,6 @@ module demo::evmtx {
         coin::transfer<AptosCoin>(account, @demo, (amount as u64));
         addBalance(account, to, amount);
     }
-
-
 
     #[test_only]
     fun to_32bit(data: vector<u8>): vector<u8> {
