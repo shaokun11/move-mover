@@ -114,13 +114,13 @@ module demo::evmcontract {
 
     fun run(global: &mut S, sender: vector<u8>, contract_addr: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> {
         let stack = &mut vector::empty<u256>();
-        let move_ret = vector::empty<u8>();
         let memory = &mut vector::empty<u8>();
         let storage = simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage;
         let len = vector::length(&code);
         let runtime_code = vector::empty<u8>();
         let i = 0;
         let ret_size = 0;
+        let ret_bytes = vector::empty<u8>();
         // simple_map::upsert(&mut storage, 13579, x"3334432345");
         // debug::print(global);
         // debug::print(&simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage);
@@ -136,14 +136,14 @@ module demo::evmcontract {
             // debug::print(&opcode);
             // stop
             if(opcode == 0x00) {
-                move_ret = runtime_code;
+                ret_bytes = runtime_code;
                 break
             }
             else if(opcode == 0xf3) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 // move_ret = read_bytes(*memory, pos, end);
-                move_ret = slice(*memory, pos, len);
+                ret_bytes = slice(*memory, pos, len);
                 break
             }
             //add
@@ -306,10 +306,23 @@ module demo::evmcontract {
 
                 i = i + 1;
             }
+            //RETURNDATACOPY
+            else if(opcode == 0x3e) {
+                // mstore()
+                let m_pos = vector::pop_back(stack);
+                let d_pos = vector::pop_back(stack);
+                let len = vector::pop_back(stack);
+                let bytes = slice(ret_bytes, d_pos, len);
+                mstore(memory, m_pos, bytes);
+                i = i + 1;
+            }
+            //BLOCKHASH
+            else if(opcode == 0x41) {
+                vector::push_back(stack, (block::get_current_block_height() as u256));
+                i = i + 1;
+            }
             //RETURNDATASIZE
             else if(opcode == 0x3d) {
-                // debug::print(&utf8(b"data size"));
-                // debug::print(&ret_size);
                 vector::push_back(stack, ret_size);
                 i = i + 1;
             }
@@ -516,12 +529,15 @@ module demo::evmcontract {
                 let m_len = vector::pop_back(stack);
                 let ret_pos = vector::pop_back(stack);
                 let ret_len = vector::pop_back(stack);
+
                 if(simple_map::contains_key(&global.contracts, &dest_addr)) {
-                    ret_size = ret_len;
+
                     let ret_end = ret_len + ret_pos;
                     let params = slice(*memory, m_pos, m_len);
                     let runtime = simple_map::borrow(&mut global.contracts, &dest_addr).runtime;
-                    let ret_bytes = run(global, copy contract_addr, dest_addr, runtime, params, readOnly, msg_value);
+
+                    ret_bytes = run(global, copy contract_addr, dest_addr, runtime, params, readOnly, msg_value);
+                    ret_size = (vector::length(&ret_bytes) as u256);
                     let index = 0;
                     while (ret_pos < ret_end) {
                         let bytes = if(ret_end - ret_pos >= 32) {
@@ -573,6 +589,8 @@ module demo::evmcontract {
                 // debug::print(&new_contract_addr);
                 let runtime = run(global, copy contract_addr, new_contract_addr, new_codes, x"", false, msg_value);
                 // debug::print(&utf8(b"create2 end"));
+                ret_size = 32;
+                ret_bytes = contract_addr;
                 simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &new_contract_addr).runtime = runtime;
                 vector::push_back(stack, data_to_u256(new_contract_addr,0, 32));
                 i = i + 1
@@ -646,7 +664,7 @@ module demo::evmcontract {
             // debug::print(&vector::length(stack));
         };
         simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage = storage;
-        move_ret
+        ret_bytes
     }
 
     fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
@@ -912,7 +930,7 @@ module demo::evmcontract {
         vector::append(&mut params, x"70a08231");
         vector::append(&mut params, sender);
         debug::print(&view(x"", usdt_addr, params));
-
+        //
         debug::print(&utf8(b"swap usdc for usdt"));
         //38ed1739 + amountIn + amountOutMin + path + to + deadline
         let swap_params = vector::empty<u8>();
@@ -954,9 +972,8 @@ module demo::evmcontract {
         let multicall_bytecode = x"608060405234801561001057600080fd5b5061066e806100206000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c806372425d9d1161005b57806372425d9d146100e757806386d516e8146100ef578063a8b0574e146100f7578063ee82ac5e1461010c57610088565b80630f28c97d1461008d578063252dba42146100ab57806327e86d6e146100cc5780634d2301cc146100d4575b600080fd5b61009561011f565b6040516100a2919061051e565b60405180910390f35b6100be6100b93660046103b6565b610123565b6040516100a292919061052c565b610095610231565b6100956100e2366004610390565b61023a565b610095610247565b61009561024b565b6100ff61024f565b6040516100a2919061050a565b61009561011a3660046103eb565b610253565b4290565b60006060439150825160405190808252806020026020018201604052801561015f57816020015b606081526020019060019003908161014a5790505b50905060005b835181101561022b576000606085838151811061017e57fe5b6020026020010151600001516001600160a01b031686848151811061019f57fe5b6020026020010151602001516040516101b891906104fe565b6000604051808303816000865af19150503d80600081146101f5576040519150601f19603f3d011682016040523d82523d6000602084013e6101fa565b606091505b50915091508161020957600080fd5b8084848151811061021657fe5b60209081029190910101525050600101610165565b50915091565b60001943014090565b6001600160a01b03163190565b4490565b4590565b4190565b4090565b600061026382356105d4565b9392505050565b600082601f83011261027b57600080fd5b813561028e61028982610573565b61054c565b81815260209384019390925082018360005b838110156102cc57813586016102b68882610325565b84525060209283019291909101906001016102a0565b5050505092915050565b600082601f8301126102e757600080fd5b81356102f561028982610594565b9150808252602083016020830185838301111561031157600080fd5b61031c8382846105ee565b50505092915050565b60006040828403121561033757600080fd5b610341604061054c565b9050600061034f8484610257565b825250602082013567ffffffffffffffff81111561036c57600080fd5b610378848285016102d6565b60208301525092915050565b600061026382356105df565b6000602082840312156103a257600080fd5b60006103ae8484610257565b949350505050565b6000602082840312156103c857600080fd5b813567ffffffffffffffff8111156103df57600080fd5b6103ae8482850161026a565b6000602082840312156103fd57600080fd5b60006103ae8484610384565b60006102638383610497565b61041e816105d4565b82525050565b600061042f826105c2565b61043981856105c6565b93508360208202850161044b856105bc565b60005b84811015610482578383038852610466838351610409565b9250610471826105bc565b60209890980197915060010161044e565b50909695505050505050565b61041e816105df565b60006104a2826105c2565b6104ac81856105c6565b93506104bc8185602086016105fa565b6104c58161062a565b9093019392505050565b60006104da826105c2565b6104e481856105cf565b93506104f48185602086016105fa565b9290920192915050565b600061026382846104cf565b602081016105188284610415565b92915050565b60208101610518828461048e565b6040810161053a828561048e565b81810360208301526103ae8184610424565b60405181810167ffffffffffffffff8111828210171561056b57600080fd5b604052919050565b600067ffffffffffffffff82111561058a57600080fd5b5060209081020190565b600067ffffffffffffffff8211156105ab57600080fd5b506020601f91909101601f19160190565b60200190565b5190565b90815260200190565b919050565b6000610518826105e2565b90565b6001600160a01b031690565b82818337506000910152565b60005b838110156106155781810151838201526020016105fd565b83811115610624576000848401525b50505050565b601f01601f19169056fea265627a7a72305820978cd44d5ce226bebdf172bdf24918753b9e111e3803cb6249d3ca2860b7a47f6c6578706572696d656e74616cf50037";
         let multicall_addr = create(sender, 5, multicall_bytecode, 0);
         debug::print(&multicall_addr);
-        let mulicall_params = x"252dba42000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020";
-        vector::append(&mut mulicall_params, pair_addr);
-        vector::append(&mut mulicall_params, x"000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000040902f1ac00000000000000000000000000000000000000000000000000000000");
+        let mulicall_params = x"252dba420000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000009c4aae49118b26f5f4efa5865e6bfcc2cfd6a94b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002470a08231000000000000000000000000892a2b7cf919760e148a0d33c1eb0f44d3b383f800000000000000000000000000000000000000000000000000000000";
+        debug::print(&utf8(b"call multicall"));
         debug::print(&view(x"", multicall_addr, mulicall_params));
         // call(x"40c10f19000000000000000000000000892a2b7cf919760e148a0d33c1eb0f44d3b383f80000000000000000000000000000000000000000000000000000000000000064");
     }
