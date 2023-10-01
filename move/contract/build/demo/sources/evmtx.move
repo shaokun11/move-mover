@@ -21,6 +21,7 @@ module demo::evmtx {
     const INSUFFICIENT_BALANCE: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
     const INVALID_NONCE: u64 = 3;
+    const CONVERT_BASE: u256 = 10000000000;
 
     const ZERO_ADDR: vector<u8> = x"0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -48,7 +49,7 @@ module demo::evmtx {
             call(account, from, to, data, value);
         };
 
-        update(account, from, to, nonce, value, gas_fee);
+        update(account, from, to, nonce, value, gas_fee * CONVERT_BASE);
     }
 
     #[view]
@@ -57,7 +58,7 @@ module demo::evmtx {
     }
 
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
-        coin::transfer<AptosCoin>(account, @demo, ((amount / 10000000000) as u64));
+        coin::transfer<AptosCoin>(account, @demo, ((amount / CONVERT_BASE) as u64));
         addBalance(account, to, amount);
     }
 
