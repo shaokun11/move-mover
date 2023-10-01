@@ -1,8 +1,8 @@
 module demo::evmtx {
-    use demo::evmcontract;
+    use demo::evm;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin;
-    use demo::evmcontract::call;
+    use demo::evm::call;
     use demo::evmstorage::{createAccount, update, addBalance};
 
     #[test_only]
@@ -41,7 +41,7 @@ module demo::evmtx {
         createAccount(from, false);
 
         if (deploy_contract) {
-            let contract_addr = evmcontract::deploy(account, from, nonce, data, value);
+            let contract_addr = evm::deploy(account, from, nonce, data, value);
             createAccount(contract_addr, true);
             to = contract_addr;
         } else {
@@ -54,7 +54,7 @@ module demo::evmtx {
 
     #[view]
     public fun query(from: vector<u8>, to: vector<u8>, data: vector<u8>): vector<u8> {
-        evmcontract::view(from, to, data)
+        evm::view(from, to, data)
     }
 
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
@@ -82,7 +82,7 @@ module demo::evmtx {
         let evm = account::create_account_for_test(@demo);
 
         evmstorage::init_module_for_test(&evm);
-        evmcontract::init_module_for_test(&evm);
+        evm::init_module_for_test(&evm);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
             &aptos,
             string::utf8(b"APT"),

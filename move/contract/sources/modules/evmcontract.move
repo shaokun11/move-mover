@@ -1,4 +1,4 @@
-module demo::evmcontract {
+module demo::evm {
     use std::vector;
     use std::signer;
     use aptos_std::simple_map;
@@ -48,6 +48,11 @@ module demo::evmcontract {
         topic1: vector<u8>
     }
 
+    struct RevertEvent has drop, store {
+        contract: vector<u8>,
+        data: vector<u8>
+    }
+
     struct T has key, store {
         storage: SimpleMap<u256, vector<u8>>,
         runtime: vector<u8>
@@ -57,7 +62,8 @@ module demo::evmcontract {
         contracts: simple_map::SimpleMap<vector<u8>, T>,
         log1Event: EventHandle<Log1Event>,
         log2Event: EventHandle<Log2Event>,
-        log3Event: EventHandle<Log3Event>
+        log3Event: EventHandle<Log3Event>,
+        revertEvent: EventHandle<RevertEvent>
     }
 
     entry fun init_module(account: &signer) {
@@ -65,7 +71,8 @@ module demo::evmcontract {
             contracts: simple_map::create<vector<u8>, T>(),
             log1Event: new_event_handle<Log1Event>(account),
             log2Event: new_event_handle<Log2Event>(account),
-            log3Event: new_event_handle<Log3Event>(account)
+            log3Event: new_event_handle<Log3Event>(account),
+            revertEvent: new_event_handle<RevertEvent>(account)
         });
     }
 
@@ -307,7 +314,6 @@ module demo::evmcontract {
                     let code = simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &addr).runtime;
                     vector::push_back(stack, (vector::length(&code) as u256));
                 } else {
-                    assert!(false, 999);
                     vector::push_back(stack, 0);
                 };
 
@@ -607,7 +613,7 @@ module demo::evmcontract {
                 });
                 // debug::print(&utf8(b"create2 start"));
                 // debug::print(&p);
-                // debug::print(&contract_addr);
+                // debug::print(&new_codes);
                 // debug::print(&new_contract_addr);
                 let runtime = run(global, copy contract_addr, new_contract_addr, new_codes, x"", false, msg_value);
                 // debug::print(&utf8(b"create2 end"));
@@ -622,6 +628,13 @@ module demo::evmcontract {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
                 debug::print(&slice(*memory, pos, len));
+                event::emit_event<RevertEvent>(
+                    &mut global.revertEvent,
+                    RevertEvent{
+                        contract: contract_addr,
+                        data
+                    },
+                );
                 assert!(false, (opcode as u64));
                 i = i + 1
             }
@@ -821,6 +834,7 @@ module demo::evmcontract {
         init_module(account);
     }
 
+
     #[test(admin = @demo)]
     fun testUniswap() acquires S {
         let sender = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
@@ -851,7 +865,7 @@ module demo::evmcontract {
         debug::print(&utf8(b"create factory"));
         debug::print(&factory_addr);
 
-        //x"c9c65396" + usdc_addr + usdt_addr
+        // x"c9c65396" + usdc_addr + usdt_addr
         let params = vector::empty<u8>();
         vector::append(&mut params, x"c9c65396");
         vector::append(&mut params, to_32bit(usdc_addr));
@@ -906,7 +920,7 @@ module demo::evmcontract {
         vector::append(&mut mint_usdc_params, x"40c10f19");
         vector::append(&mut mint_usdc_params, sender);
         // 200 * 1e18
-        vector::append(&mut mint_usdc_params, u256_to_data(200000000000000000000));
+        vector::append(&mut mint_usdc_params, u256_to_data(500000000000000000000));
         debug::print(&mint_usdc_params);
         call(&user, sender, usdc_addr, mint_usdc_params, 0);
 
@@ -916,9 +930,10 @@ module demo::evmcontract {
         vector::append(&mut mint_usdt_params, x"40c10f19");
         vector::append(&mut mint_usdt_params, sender);
         // 200 * 1e18
-        vector::append(&mut mint_usdt_params, u256_to_data(200000000000000000000));
+        vector::append(&mut mint_usdt_params, u256_to_data(500000000000000000000));
         call(&user, sender, usdt_addr, mint_usdt_params, 0);
         debug::print(&mint_usdc_params);
+
         let deadline = 1697746917;
 
         debug::print(&utf8(b"add liquidity"));
@@ -938,7 +953,6 @@ module demo::evmcontract {
         vector::append(&mut add_liquidity_params, u256_to_data(deadline));
         debug::print(&add_liquidity_params);
         call(&user, sender, router_addr, add_liquidity_params, 0);
-
 
         debug::print(&utf8(b"get balance of USDC"));
         let params = vector::empty<u8>();
@@ -970,11 +984,32 @@ module demo::evmcontract {
         debug::print(&swap_params);
         call(&user, sender, router_addr, swap_params, 0);
 
-        debug::print(&utf8(b"get balance of lp token"));
-        let params = vector::empty<u8>();
-        vector::append(&mut params, x"70a08231");
-        vector::append(&mut params, sender);
-        debug::print(&view(x"", pair_addr, params));
+        debug::print(&utf8(b"approve pair"));
+        //095ea7b3 + router address
+        let approve_usdt_params = vector::empty<u8>();
+        vector::append(&mut approve_usdt_params, x"095ea7b3");
+        // 1000000 * 1e18
+        vector::append(&mut approve_usdt_params, router_addr);
+        vector::append(&mut approve_usdt_params, u256_to_data(10000000000000000000000));
+        debug::print(&approve_usdt_params);
+        call(&user, sender, pair_addr, approve_usdt_params, 0);
+
+        debug::print(&utf8(b"remove liquidity"));
+        //095ea7b3 + router address
+        let remove_params = vector::empty<u8>();
+        vector::append(&mut remove_params, x"baa2abde");
+        // 1000000 * 1e18
+        vector::append(&mut remove_params, usdc_addr);
+        vector::append(&mut remove_params, usdt_addr);
+        vector::append(&mut remove_params, u256_to_data(1000000000000000000));
+        vector::append(&mut remove_params, u256_to_data(0));
+        vector::append(&mut remove_params, u256_to_data(0));
+        vector::append(&mut remove_params, to_32bit(sender));
+        vector::append(&mut remove_params, u256_to_data(deadline));
+        debug::print(&remove_params);
+        call(&user, sender, router_addr, remove_params, 0);
+
+
 
         debug::print(&utf8(b"get balance of USDC"));
         let params = vector::empty<u8>();

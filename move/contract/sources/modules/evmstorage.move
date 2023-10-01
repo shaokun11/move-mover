@@ -52,6 +52,7 @@ module demo::evmstorage {
     }
 
     public fun addBalance(account: &signer, to: vector<u8>, amount: u256) acquires R {
+        checkCaller(account);
         createAccount(to, false);
         let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &to);
         account.balance = account.balance + amount;
