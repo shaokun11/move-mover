@@ -175,11 +175,18 @@ module demo::evmcontract {
                 };
                 i = i + 1;
             }
-            //div
-            else if(opcode == 0x04) {
+            //div && sdiv
+            else if(opcode == 0x04 || opcode == 0x05) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a / b);
+                i = i + 1;
+            }
+            //mod && smod
+            else if(opcode == 0x06 || opcode == 0x07) {
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                vector::push_back(stack, a % b);
                 i = i + 1;
             }
             //exp
@@ -292,7 +299,7 @@ module demo::evmcontract {
                 };
                 i = i + 1
             }
-            //EXTCODESIZE
+            //extcodesize
             else if(opcode == 0x3b) {
                 let addr = to_32bit(u256_to_data(vector::pop_back(stack)));
                 // debug::print(&addr);
@@ -306,7 +313,7 @@ module demo::evmcontract {
 
                 i = i + 1;
             }
-            //RETURNDATACOPY
+            //returndatacopy
             else if(opcode == 0x3e) {
                 // mstore()
                 let m_pos = vector::pop_back(stack);
@@ -316,24 +323,39 @@ module demo::evmcontract {
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
-            //BLOCKHASH
-            else if(opcode == 0x41) {
-                vector::push_back(stack, (block::get_current_block_height() as u256));
-                i = i + 1;
-            }
-            //RETURNDATASIZE
+            //returndatasize
             else if(opcode == 0x3d) {
                 vector::push_back(stack, ret_size);
                 i = i + 1;
             }
-            //TIMESTAMP
+            //blockhash
+            else if(opcode == 0x40) {
+                vector::push_back(stack, 0);
+                i = i + 1;
+            }
+            //coinbase
+            else if(opcode == 0x41) {
+                vector::push_back(stack, 0);
+                i = i + 1;
+            }
+            //timestamp
             else if(opcode == 0x42) {
                 vector::push_back(stack, (now_microseconds() as u256) / 1000000);
                 i = i + 1;
             }
-            //BLOCK.NUMBER
+            //number
             else if(opcode == 0x43) {
                 vector::push_back(stack, (block::get_current_block_height() as u256));
+                i = i + 1;
+            }
+            //difficulty
+            else if(opcode == 0x44) {
+                vector::push_back(stack, 0);
+                i = i + 1;
+            }
+            //gaslimit
+            else if(opcode == 0x44) {
+                vector::push_back(stack, 30000000);
                 i = i + 1;
             }
             //chainid

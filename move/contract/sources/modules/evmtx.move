@@ -57,7 +57,7 @@ module demo::evmtx {
     }
 
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
-        coin::transfer<AptosCoin>(account, @demo, (amount as u64));
+        coin::transfer<AptosCoin>(account, @demo, ((amount / 10000000000) as u64));
         addBalance(account, to, amount);
     }
 
@@ -101,10 +101,10 @@ module demo::evmtx {
         //test deposit
         let alice = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
-        deposit(&caller, 10000000000, alice);
+        deposit(&caller, 100000000000000000000, alice);
         // debug::print(&borrow_global<R>(@demo).accounts);
         debug::print(&utf8(b"alice transfer 1 apt to bob"));
-        sendTx(&caller, 100000000, alice, bob, 0, x"", 10000);
+        sendTx(&caller, 1000000000000000000, alice, bob, 0, x"", 10000);
         // debug::print(&borrow_global<R>(@demo).accounts);
 
         debug::print(&utf8(b"alice deploy a single contract"));
