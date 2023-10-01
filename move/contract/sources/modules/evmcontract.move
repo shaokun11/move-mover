@@ -637,6 +637,7 @@ module demo::evm {
                 );
                 // assert!(false, (opcode as u64));
                 i = i + 1
+                break;
             }
             //log1
             else if(opcode == 0xa1) {
