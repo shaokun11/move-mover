@@ -635,7 +635,7 @@ module demo::evm {
                         data
                     },
                 );
-                assert!(false, (opcode as u64));
+                // assert!(false, (opcode as u64));
                 i = i + 1
             }
             //log1
