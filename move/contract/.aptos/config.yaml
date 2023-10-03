@@ -1,8 +1,8 @@
 ---
 profiles:
   default:
-    private_key: "0x48d4488a3f1ef5281f3a2a71878558f930977cff4ec7f92060ea4f914e8de965"
-    public_key: "0x1f5a5d464fc752b6762267be4d0abbc6ff395cfd69f0e4afe191b95d5ec25f67"
-    account: 864374ad1821e79a98fe8f6662fa41986ce47a3c824c659d5aa441caa98c19cf
-    rest_url: "https://fullnode.testnet.aptoslabs.com"
-    faucet_url: "https://faucet.testnet.aptoslabs.com"
+    private_key: "0x9380c4b6e92c7e36ab14f60045d0eb44afc318d6fe626c4669822e580d54790a"
+    public_key: "0xc156d5449531addfe727079d0c802ada8cdf08ec985d4498fe098ed5dd3d2aeb"
+    account: 645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd
+    rest_url: "https://seed-node1-rpc.movementlabs.xyz"
+    faucet_url: "https://seed-node1-rpc.movementlabs.xyz"

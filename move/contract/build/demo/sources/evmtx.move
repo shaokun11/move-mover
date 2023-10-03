@@ -52,6 +52,10 @@ module demo::evmtx {
         update(account, from, to, nonce, value, gas_fee * CONVERT_BASE);
     }
 
+    public entry fun test_query(from: vector<u8>, to: vector<u8>, data: vector<u8>) {
+        evm::view(from, to, data);
+    }
+
     #[view]
     public fun query(from: vector<u8>, to: vector<u8>, data: vector<u8>): vector<u8> {
         evm::view(from, to, data)
@@ -79,10 +83,10 @@ module demo::evmtx {
     fun test() {
         let aptos = account::create_account_for_test(@0x1);
         let caller = account::create_account_for_test(@signer);
-        let evm = account::create_account_for_test(@demo);
+        // let evm = account::create_account_for_test(@demo);
 
-        evmstorage::init_module_for_test(&evm);
-        evm::init_module_for_test(&evm);
+        evmstorage::init_module_for_test(&caller);
+        evm::init_module_for_test(&caller);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
             &aptos,
             string::utf8(b"APT"),
@@ -91,7 +95,7 @@ module demo::evmtx {
             false,
         );
         coin::register<AptosCoin>(&caller);
-        coin::register<AptosCoin>(&evm);
+        // coin::register<AptosCoin>(&evm);
 
         let coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
         coin::deposit(signer::address_of(&caller), coins);
