@@ -18,6 +18,7 @@ module demo::evm {
     use demo::evmstorage;
     use demo::util::checkCaller;
     use aptos_framework::block;
+    use aptos_framework::transaction_fee;
 
     const INVALID_SENDER: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
@@ -240,18 +241,18 @@ module demo::evm {
                 i = i + 1;
             }
             //sgt
-            // else if(opcode == 0x13) {
-            //     let a = vector::pop_back(stack);
-            //     let b = vector::pop_back(stack);
-            //     let(sg_a, num_a) = to_int256(a);
-            //     let(sg_b, num_b) = to_int256(b);
-            //     let value = 1;
-            //     if((sg_a && !sg_b) || (sg_a && sg_b && num_a > num_b) || (!sg_a && !sg_b && num_a < num_b)) {
-            //         value = 0
-            //     };
-            //     vector::push_back(stack, value);
-            //     i = i + 1;
-            // }
+            else if(opcode == 0x13) {
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                let(sg_a, num_a) = to_int256(a);
+                let(sg_b, num_b) = to_int256(b);
+                let value = 1;
+                if((sg_a && !sg_b) || (sg_a && sg_b && num_a > num_b) || (!sg_a && !sg_b && num_a < num_b)) {
+                    value = 0
+                };
+                vector::push_back(stack, value);
+                i = i + 1;
+            }
             //eq
             else if(opcode == 0x14) {
                 let a = vector::pop_back(stack);
@@ -657,7 +658,6 @@ module demo::evm {
                 );
                 i = i + 1;
                 assert!(false, (opcode as u64));
-                // break
             }
             //log1
             else if(opcode == 0xa1) {
@@ -958,15 +958,15 @@ module demo::evm {
         debug::print(&mint_usdc_params);
         call(&user, sender, usdc_addr, mint_usdc_params, 0);
 
-        debug::print(&utf8(b"mint usdt"));
-        //40c10f19 + to address
-        let mint_usdt_params = vector::empty<u8>();
-        vector::append(&mut mint_usdt_params, x"40c10f19");
-        vector::append(&mut mint_usdt_params, sender);
-        // 200 * 1e18
-        vector::append(&mut mint_usdt_params, u256_to_data(500000000000000000000));
-        call(&user, sender, usdt_addr, mint_usdt_params, 0);
-        debug::print(&mint_usdc_params);
+        // debug::print(&utf8(b"mint usdt"));
+        // //40c10f19 + to address
+        // let mint_usdt_params = vector::empty<u8>();
+        // vector::append(&mut mint_usdt_params, x"40c10f19");
+        // vector::append(&mut mint_usdt_params, sender);
+        // // 200 * 1e18
+        // vector::append(&mut mint_usdt_params, u256_to_data(500000000000000000000));
+        // call(&user, sender, usdt_addr, mint_usdt_params, 0);
+        // debug::print(&mint_usdc_params);
 
         let deadline = 1697746917;
 

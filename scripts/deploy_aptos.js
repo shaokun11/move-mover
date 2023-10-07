@@ -1,9 +1,9 @@
 let {AptosAccount, MoveView, BCS, AptosClient, HexString, TxnBuilderTypes, FaucetClient, get} = require("aptos")
 const fs = require("fs");
 const path = require("path");
-const client = new AptosClient("https://fullnode.testnet.aptoslabs.com");
+const client = new AptosClient("https://seed-node1-rpc.movementlabs.xyz");
 const { keccak256 } = require("ethers");
-let pk = "0xe6ee9813c7a89f2932978e6081fafc8e9b6391745518cbe887aca572541eddd0";
+let pk = "0x9380c4b6e92c7e36ab14f60045d0eb44afc318d6fe626c4669822e580d54790a";
 let owner = new AptosAccount(new HexString(pk).toUint8Array())
 let zeros = "0x0000000000000000000000000000000000000000000000000000000000000000"
 let alice = "0x000000000000000000000000892a2b7cF919760e148A0d33C1eb0f44D3b383f8".toLowerCase()
@@ -202,13 +202,13 @@ async function deploy() {
     let bytecodes = data.bytecodes
 
     let usdcBytecode = encodeDeployment(bytecodes.ERC20, {
-        types: ["string", "string"],
-        values: ["USDC", "USDC"]
+        types: ["string", "string", "uint8"],
+        values: ["USDC", "USDC", 18]
     })
     let usdcAddr = await sendTx(zeros, usdcBytecode)
     let usdtBytecode = encodeDeployment(bytecodes.ERC20, {
-        types: ["string", "string"],
-        values: ["USDT", "USDT"]
+        types: ["string", "string", "uint8"],
+        values: ["USDT", "USDT", 18]
     })
     let usdtAddr = await sendTx(zeros, usdtBytecode)
 
@@ -244,7 +244,7 @@ async function deploy() {
         FACTORY: factoryAddr,
         MULTICALL: multicallAddr
     }
-    fs.writeFileSync("./data.json", JSON.stringify(data, null, 4))
+    fs.writeFileSync("./scripts/data.json", JSON.stringify(data, null, 4))
 }
 
 async function run() {

@@ -11,10 +11,10 @@ compiled_package_info:
     signer: 645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 6C163EAFC689C2BEC65B70B4F1711C867C4FB23E3C80E6BBD3C5B2F2B952155D
+  source_digest: A488F9513617DDA101AFF05E7E53753134D8FC22432D2070BBF637D298D5BA84
   build_flags:
-    dev_mode: false
-    test_mode: false
+    dev_mode: true
+    test_mode: true
     generate_docs: false
     generate_abis: false
     install_dir: ~
