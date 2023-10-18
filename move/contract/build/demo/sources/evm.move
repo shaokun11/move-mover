@@ -80,7 +80,6 @@ module demo::evm {
     public fun deploy(account: &signer, sender: vector<u8>, nonce: u256, construct: vector<u8>, value: u256): vector<u8> acquires S {
         checkCaller(account);
         assert!(vector::length(&sender) == 32, INVALID_SENDER);
-        // todo verify caller
         let _account_addr = signer::address_of(account);
         create(sender, nonce, construct, value)
     }
@@ -154,7 +153,7 @@ module demo::evm {
                 ret_bytes = slice(*memory, pos, len);
                 break
             }
-            //add
+                //add
             else if(opcode == 0x01) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -165,14 +164,14 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //mul
+                //mul
             else if(opcode == 0x02) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a * b);
                 i = i + 1;
             }
-            //sub
+                //sub
             else if(opcode == 0x03) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -183,28 +182,44 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //div && sdiv
+                //div && sdiv
             else if(opcode == 0x04 || opcode == 0x05) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a / b);
                 i = i + 1;
             }
-            //mod && smod
+                //mod && smod
             else if(opcode == 0x06 || opcode == 0x07) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a % b);
                 i = i + 1;
             }
-            //exp
+                //addmod
+            else if(opcode == 0x0a) {
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                let n = vector::pop_back(stack);
+                vector::push_back(stack, (a + b) % n);
+                i = i + 1;
+            }
+                //mulmod
+            else if(opcode == 0x0a) {
+                let a = vector::pop_back(stack);
+                let b = vector::pop_back(stack);
+                let n = vector::pop_back(stack);
+                vector::push_back(stack, (a * b) % n);
+                i = i + 1;
+            }
+                //exp
             else if(opcode == 0x0a) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, power(a, b));
                 i = i + 1;
             }
-            //lt
+                //lt
             else if(opcode == 0x10) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -215,7 +230,7 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //gt
+                //gt
             else if(opcode == 0x11) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -226,7 +241,7 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //slt
+           //slt
             else if(opcode == 0x12) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -239,7 +254,7 @@ module demo::evm {
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //sgt
+                //sgt
             else if(opcode == 0x13) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -252,7 +267,7 @@ module demo::evm {
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //eq
+                //eq
             else if(opcode == 0x14) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
@@ -263,28 +278,28 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //and
+                //and
             else if(opcode == 0x16) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a & b);
                 i = i + 1;
             }
-            //or
+                //or
             else if(opcode == 0x17) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a | b);
                 i = i + 1;
             }
-            //xor
+                //xor
             else if(opcode == 0x18) {
                 let a = vector::pop_back(stack);
                 let b = vector::pop_back(stack);
                 vector::push_back(stack, a ^ b);
                 i = i + 1;
             }
-            //not
+                //not
             else if(opcode == 0x19) {
                 // 10 1010
                 // 6 0101
@@ -292,50 +307,50 @@ module demo::evm {
                 vector::push_back(stack, U256_MAX - n);
                 i = i + 1;
             }
-            //shl
+                //shl
             else if(opcode == 0x1b) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
                 vector::push_back(stack, a << (b as u8));
                 i = i + 1;
             }
-            //shr
+                //shr
             else if(opcode == 0x1c) {
                 let b = vector::pop_back(stack);
                 let a = vector::pop_back(stack);
                 vector::push_back(stack, a >> (b as u8));
                 i = i + 1;
             }
-            //push0
+                //push0
             else if(opcode == 0x5f) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            // push1 -> push32
+                // push1 -> push32
             else if(opcode >= 0x60 && opcode <= 0x7f)  {
                 let n = ((opcode - 0x60) as u64);
                 let number = data_to_u256(code, ((i + 1) as u256), ((n + 1) as u256));
                 vector::push_back(stack, (number as u256));
                 i = i + n + 2;
             }
-            // pop
+                // pop
             else if(opcode == 0x50) {
                 vector::pop_back(stack);
                 i = i + 1
             }
-            //address
+                //address
             else if(opcode == 0x30) {
                 vector::push_back(stack, data_to_u256(contract_addr, 0, 32));
                 i = i + 1;
             }
-            //balance
+                //balance
             else if(opcode == 0x31) {
                 let addr = u256_to_data(vector::pop_back(stack));
                 let (balance, _nonce) = evmstorage::getAccount(addr);
                 vector::push_back(stack, balance);
                 i = i + 1;
             }
-            //caller
+                //caller
             else if(opcode == 0x33) {
                 // debug::print(&utf8(b"caller"));
                 // debug::print(&sender);
@@ -345,24 +360,24 @@ module demo::evm {
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            // callvalue
+                // callvalue
             else if(opcode == 0x34) {
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //calldataload
+                //calldataload
             else if(opcode == 0x35) {
                 let pos = vector::pop_back(stack);
                 vector::push_back(stack, data_to_u256(data, pos, 32));
                 i = i + 1;
                 // block.
             }
-            //calldatasize
+                //calldatasize
             else if(opcode == 0x36) {
                 vector::push_back(stack, (vector::length(&data) as u256));
                 i = i + 1;
             }
-            //calldatacopy
+                //calldatacopy
             else if(opcode == 0x37) {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
@@ -385,12 +400,12 @@ module demo::evm {
                 };
                 i = i + 1
             }
-            //codesize
+                //codesize
             else if(opcode == 0x38) {
                 vector::push_back(stack, (vector::length(&code) as u256));
                 i = i + 1
             }
-            //codecopy
+                //codecopy
             else if(opcode == 0x39) {
                 let m_pos = vector::pop_back(stack);
                 let d_pos = vector::pop_back(stack);
@@ -409,7 +424,7 @@ module demo::evm {
                 };
                 i = i + 1
             }
-            //extcodesize
+                //extcodesize
             else if(opcode == 0x3b) {
                 let addr = to_32bit(u256_to_data(vector::pop_back(stack)));
                 // debug::print(&addr);
@@ -422,7 +437,7 @@ module demo::evm {
 
                 i = i + 1;
             }
-            //returndatacopy
+                //returndatacopy
             else if(opcode == 0x3e) {
                 // mstore()
                 let m_pos = vector::pop_back(stack);
@@ -432,53 +447,53 @@ module demo::evm {
                 mstore(memory, m_pos, bytes);
                 i = i + 1;
             }
-            //returndatasize
+                //returndatasize
             else if(opcode == 0x3d) {
                 vector::push_back(stack, ret_size);
                 i = i + 1;
             }
-            //blockhash
+                //blockhash
             else if(opcode == 0x40) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            //coinbase
+                //coinbase
             else if(opcode == 0x41) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            //timestamp
+                //timestamp
             else if(opcode == 0x42) {
                 vector::push_back(stack, (now_microseconds() as u256) / 1000000);
                 i = i + 1;
             }
-            //number
+                //number
             else if(opcode == 0x43) {
                 vector::push_back(stack, (block::get_current_block_height() as u256));
                 i = i + 1;
             }
-            //difficulty
+                //difficulty
             else if(opcode == 0x44) {
                 vector::push_back(stack, 0);
                 i = i + 1;
             }
-            //gaslimit
+                //gaslimit
             else if(opcode == 0x44) {
                 vector::push_back(stack, 30000000);
                 i = i + 1;
             }
-            //chainid
+                //chainid
             else if(opcode == 0x46) {
                 vector::push_back(stack, 1);
                 i = i + 1
             }
-            // mload
+                // mload
             else if(opcode == 0x51) {
                 let pos = vector::pop_back(stack);
                 vector::push_back(stack, data_to_u256(slice(*memory, pos, 32), 0, 32));
                 i = i + 1;
             }
-            // mstore
+                // mstore
             else if(opcode == 0x52) {
                 let pos = vector::pop_back(stack);
                 let value = vector::pop_back(stack);
@@ -486,7 +501,7 @@ module demo::evm {
                 i = i + 1;
 
             }
-            // sload
+                // sload
             else if(opcode == 0x54) {
                 let pos = vector::pop_back(stack);
                 if(simple_map::contains_key(&mut storage, &pos)) {
@@ -497,7 +512,7 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            // sstore
+                // sstore
             else if(opcode == 0x55) {
                 if(readOnly) {
                     assert!(false, CONTRACT_READ_ONLY);
@@ -510,20 +525,20 @@ module demo::evm {
                 // debug::print(&value);
                 i = i + 1;
             }
-            //dup1 -> dup16
+                //dup1 -> dup16
             else if(opcode >= 0x80 && opcode <= 0x8f) {
                 let size = vector::length(stack);
                 let value = *vector::borrow(stack, size - ((opcode - 0x80 + 1) as u64));
                 vector::push_back(stack, value);
                 i = i + 1;
             }
-            //swap1 -> swap16
+                //swap1 -> swap16
             else if(opcode >= 0x90 && opcode <= 0x9f) {
                 let size = vector::length(stack);
                 vector::swap(stack, size - 1, size - ((opcode - 0x90 + 2) as u64));
                 i = i + 1;
             }
-            //iszero
+                //iszero
             else if(opcode == 0x15) {
                 let value = vector::pop_back(stack);
                 if(value == 0) {
@@ -533,12 +548,12 @@ module demo::evm {
                 };
                 i = i + 1;
             }
-            //jump
+                //jump
             else if(opcode == 0x56) {
                 let dest = vector::pop_back(stack);
                 i = (dest as u64) + 1
             }
-            //jumpi
+                //jumpi
             else if(opcode == 0x57) {
                 let dest = vector::pop_back(stack);
                 let condition = vector::pop_back(stack);
@@ -548,16 +563,16 @@ module demo::evm {
                     i = i + 1
                 }
             }
-            //gas
+                //gas
             else if(opcode == 0x5a) {
                 vector::push_back(stack, 0);
                 i = i + 1
             }
-            //jump dest (no action, continue execution)
+                //jump dest (no action, continue execution)
             else if(opcode == 0x5b) {
                 i = i + 1
             }
-            //sha3
+                //sha3
             else if(opcode == 0x20) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -566,7 +581,7 @@ module demo::evm {
                 vector::push_back(stack, value);
                 i = i + 1
             }
-            //call 0xf1 static call 0xfa
+                //call 0xf1 static call 0xfa
             else if(opcode == 0xf1 || opcode == 0xfa) {
                 let readOnly = if(opcode == 0xf1) false else true;
                 let _gas = vector::pop_back(stack);
@@ -607,7 +622,7 @@ module demo::evm {
                 };
                 i = i + 1
             }
-            //create2
+                //create2
             else if(opcode == 0xf5) {
                 if(readOnly) {
                     assert!(false, CONTRACT_READ_ONLY);
@@ -642,7 +657,7 @@ module demo::evm {
                 vector::push_back(stack, data_to_u256(new_contract_addr,0, 32));
                 i = i + 1
             }
-            //revert
+                //revert
             else if(opcode == 0xfd) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -658,7 +673,7 @@ module demo::evm {
                 i = i + 1;
                 assert!(false, (opcode as u64));
             }
-            //log1
+                //log1
             else if(opcode == 0xa1) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -674,7 +689,7 @@ module demo::evm {
                 );
                 i = i + 1
             }
-            //log2
+                //log2
             else if(opcode == 0xa2) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -692,7 +707,7 @@ module demo::evm {
                 );
                 i = i + 1
             }
-            //log3
+                //log3
             else if(opcode == 0xa3) {
                 let pos = vector::pop_back(stack);
                 let len = vector::pop_back(stack);
@@ -856,6 +871,12 @@ module demo::evm {
         };
         vector::append(&mut bytes, data);
         bytes
+    }
+
+    #[view]
+    public fun getCode(addr: vector<u8>): vector<u8> acquires S {
+        let contract = simple_map::borrow(&borrow_global<S>(@demo).contracts, &addr);
+        contract.runtime
     }
 
     #[test_only]

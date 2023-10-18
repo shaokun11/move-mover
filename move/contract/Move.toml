@@ -7,22 +7,22 @@ version = "1.0.0"
 demo = "645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd"
 signer = "645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd"
 
-[dependencies.AptosFramework]
-git = 'https://github.com/aptos-labs/aptos-core'
-rev = 'devnet'
-subdir = 'aptos-move/framework/aptos-framework'
-
-[dependencies.AptosStdlib]
-git = 'https://github.com/aptos-labs/aptos-core'
-rev = 'devnet'
-subdir = 'aptos-move/framework/aptos-stdlib'
-
 #[dependencies.AptosFramework]
-#git = 'https://github.com/shaokun11/move-me2'
-#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#git = 'https://github.com/aptos-labs/aptos-core'
+#rev = 'devnet'
 #subdir = 'aptos-move/framework/aptos-framework'
 #
 #[dependencies.AptosStdlib]
-#git = 'https://github.com/shaokun11/move-me2'
-#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#git = 'https://github.com/aptos-labs/aptos-core'
+#rev = 'devnet'
 #subdir = 'aptos-move/framework/aptos-stdlib'
+
+[dependencies.AptosFramework]
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+subdir = 'aptos-move/framework/aptos-framework'
+
+[dependencies.AptosStdlib]
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+subdir = 'aptos-move/framework/aptos-stdlib'
