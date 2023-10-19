@@ -11,10 +11,10 @@ compiled_package_info:
     signer: 645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 3B485CFA70150A1D4CEE7CA001D7CA9BB389B5664CA5D98EA5BD32933E3B7BE4
+  source_digest: 44EA442F10D54CF3CDC39825F0061E31F7BFEB1173847961B4B2A27F252A9484
   build_flags:
-    dev_mode: false
-    test_mode: false
+    dev_mode: true
+    test_mode: true
     generate_docs: false
     generate_abis: false
     install_dir: ~
@@ -22,7 +22,7 @@ compiled_package_info:
     additional_named_addresses: {}
     architecture: ~
     fetch_deps_only: false
-    skip_fetch_latest_git_deps: false
+    skip_fetch_latest_git_deps: true
     bytecode_version: ~
 dependencies:
   - AptosFramework

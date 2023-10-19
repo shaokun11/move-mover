@@ -441,6 +441,7 @@ module aptos_framework::stake {
         // Remove each validator from the validator set.
         while ({
             spec {
+                invariant i <= len;
                 invariant spec_validators_are_initialized(active_validators);
                 invariant spec_validator_indices_are_valid(active_validators);
                 invariant spec_validators_are_initialized(pending_inactive);
@@ -900,7 +901,7 @@ module aptos_framework::stake {
             coin::merge(&mut stake_pool.inactive, pending_inactive_stake);
         };
 
-        // Cap withdraw amount by total ianctive coins.
+        // Cap withdraw amount by total inactive coins.
         withdraw_amount = min(withdraw_amount, coin::value(&stake_pool.inactive));
         if (withdraw_amount == 0) return coin::zero<AptosCoin>();
 
@@ -990,6 +991,10 @@ module aptos_framework::stake {
         let validator_perf = borrow_global_mut<ValidatorPerformance>(@aptos_framework);
         let validator_len = vector::length(&validator_perf.validators);
 
+        spec {
+            update ghost_valid_perf = validator_perf;
+            update ghost_proposer_idx = proposer_index;
+        };
         // proposer_index is an option because it can be missing (for NilBlocks)
         if (option::is_some(&proposer_index)) {
             let cur_proposer_index = option::extract(&mut proposer_index);
@@ -1009,6 +1014,9 @@ module aptos_framework::stake {
         while ({
             spec {
                 invariant len(validator_perf.validators) == validator_len;
+                invariant (option::spec_is_some(ghost_proposer_idx) && option::spec_borrow(ghost_proposer_idx) < validator_len) ==>
+                    (validator_perf.validators[option::spec_borrow(ghost_proposer_idx)].successful_proposals ==
+                        ghost_valid_perf.validators[option::spec_borrow(ghost_proposer_idx)].successful_proposals + 1);
             };
             f < f_len
         }) {
@@ -1040,23 +1048,17 @@ module aptos_framework::stake {
         let validator_perf = borrow_global_mut<ValidatorPerformance>(@aptos_framework);
 
         // Process pending stake and distribute transaction fees and rewards for each currently active validator.
-        let i = 0;
-        let len = vector::length(&validator_set.active_validators);
-        while (i < len) {
-            let validator = vector::borrow(&validator_set.active_validators, i);
+        vector::for_each_ref(&validator_set.active_validators, |validator| {
+            let validator: &ValidatorInfo = validator;
             update_stake_pool(validator_perf, validator.addr, &config);
-            i = i + 1;
-        };
+        });
 
         // Process pending stake and distribute transaction fees and rewards for each currently pending_inactive validator
         // (requested to leave but not removed yet).
-        let i = 0;
-        let len = vector::length(&validator_set.pending_inactive);
-        while (i < len) {
-            let validator = vector::borrow(&validator_set.pending_inactive, i);
+        vector::for_each_ref(&validator_set.pending_inactive, |validator| {
+            let validator: &ValidatorInfo = validator;
             update_stake_pool(validator_perf, validator.addr, &config);
-            i = i + 1;
-        };
+        });
 
         // Activate currently pending_active validators.
         append(&mut validator_set.active_validators, &mut validator_set.pending_active);
@@ -1355,6 +1357,11 @@ module aptos_framework::stake {
 
     fun assert_owner_cap_exists(owner: address) {
         assert!(exists<OwnerCapability>(owner), error::not_found(EOWNER_CAP_NOT_FOUND));
+    }
+
+    // Will be deleted after transaction_fee has its own MintCap for storage refunds.
+    public(friend) fun copy_aptos_coin_mint_cap_for_storage_refund(): MintCapability<AptosCoin> acquires AptosCoinCapabilities {
+        borrow_global<AptosCoinCapabilities>(@aptos_framework).mint_cap
     }
 
     #[test_only]
@@ -2586,15 +2593,12 @@ module aptos_framework::stake {
     #[test_only]
     public fun set_validator_perf_at_least_one_block() acquires ValidatorPerformance {
         let validator_perf = borrow_global_mut<ValidatorPerformance>(@aptos_framework);
-        let len = vector::length(&validator_perf.validators);
-        let i = 0;
-        while (i < len) {
-            let validator = vector::borrow_mut(&mut validator_perf.validators, i);
+        vector::for_each_mut(&mut validator_perf.validators, |validator|{
+            let validator: &mut IndividualValidatorPerformance = validator;
             if (validator.successful_proposals + validator.failed_proposals < 1) {
                 validator.successful_proposals = 1;
             };
-            i = i + 1;
-        };
+        });
     }
 
     #[test(aptos_framework = @0x1, validator_1 = @0x123, validator_2 = @0x234)]

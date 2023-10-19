@@ -19,6 +19,7 @@ module aptos_framework::account {
     friend aptos_framework::aptos_account;
     friend aptos_framework::coin;
     friend aptos_framework::genesis;
+    friend aptos_framework::multisig_account;
     friend aptos_framework::resource_account;
     friend aptos_framework::transaction_validation;
 
@@ -170,6 +171,12 @@ module aptos_framework::account {
         move_to(aptos_framework, OriginatingAddress {
             address_map: table::new(),
         });
+    }
+
+    fun create_account_if_does_not_exist(account_address: address) {
+        if (!exists<Account>(account_address)) {
+            create_account(account_address);
+        }
     }
 
     /// Publishes a new `Account` resource under `new_address`. A signer representing `new_address`
@@ -424,6 +431,24 @@ module aptos_framework::account {
         option::swap_or_fill(&mut account_resource.rotation_capability_offer.for, recipient_address);
     }
 
+    #[view]
+    /// Returns true if the account at `account_addr` has a rotation capability offer.
+    public fun is_rotation_capability_offered(account_addr: address): bool acquires Account {
+        let account_resource = borrow_global<Account>(account_addr);
+        option::is_some(&account_resource.rotation_capability_offer.for)
+    }
+
+    #[view]
+    /// Returns the address of the account that has a rotation capability offer from the account at `account_addr`.
+    public fun get_rotation_capability_offer_for(account_addr: address): address acquires Account {
+        let account_resource = borrow_global<Account>(account_addr);
+        assert!(
+            option::is_some(&account_resource.rotation_capability_offer.for),
+            error::not_found(ENO_SIGNER_CAPABILITY_OFFERED),
+        );
+        *option::borrow(&account_resource.rotation_capability_offer.for)
+    }
+
     /// Revoke the rotation capability offer given to `to_be_revoked_recipient_address` from `account`
     public entry fun revoke_rotation_capability(account: &signer, to_be_revoked_address: address) acquires Account {
         assert!(exists_at(to_be_revoked_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
@@ -483,7 +508,10 @@ module aptos_framework::account {
     /// Returns the address of the account that has a signer capability offer from the account at `account_addr`.
     public fun get_signer_capability_offer_for(account_addr: address): address acquires Account {
         let account_resource = borrow_global<Account>(account_addr);
-        assert!(option::is_some(&account_resource.signer_capability_offer.for), error::not_found(ENO_SIGNER_CAPABILITY_OFFERED));
+        assert!(
+            option::is_some(&account_resource.signer_capability_offer.for),
+            error::not_found(ENO_SIGNER_CAPABILITY_OFFERED),
+        );
         *option::borrow(&account_resource.signer_capability_offer.for)
     }
 
@@ -873,6 +901,18 @@ module aptos_framework::account {
         SignerCapability { account }
     }
 
+    #[test_only]
+    public fun set_signer_capability_offer(offerer: address, receiver: address) acquires Account {
+        let account_resource = borrow_global_mut<Account>(offerer);
+        option::swap_or_fill(&mut account_resource.signer_capability_offer.for, receiver);
+    }
+
+    #[test_only]
+    public fun set_rotation_capability_offer(offerer: address, receiver: address) acquires Account {
+        let account_resource = borrow_global_mut<Account>(offerer);
+        option::swap_or_fill(&mut account_resource.rotation_capability_offer.for, receiver);
+    }
+
     #[test]
     /// Verify test-only sequence number mocking
     public entry fun mock_sequence_numbers()
@@ -912,7 +952,7 @@ module aptos_framework::account {
     }
 
     #[test_only]
-    public entry fun create_account_from_ed25519_public_key(pk_bytes: vector<u8>): signer {
+    public fun create_account_from_ed25519_public_key(pk_bytes: vector<u8>): signer {
         let pk = ed25519::new_unvalidated_public_key_from_bytes(pk_bytes);
         let curr_auth_key = ed25519::unvalidated_public_key_to_authentication_key(&pk);
         let alice_address = from_bcs::to_address(curr_auth_key);
@@ -1274,5 +1314,28 @@ module aptos_framework::account {
         let account_state = borrow_global_mut<Account>(addr);
         account_state.guid_creation_num = MAX_GUID_CREATION_NUM - 1;
         create_guid(account);
+    }
+
+    #[test_only]
+    struct FakeCoin { }
+    #[test_only]
+    struct SadFakeCoin { }
+
+    #[test(account = @0x1234)]
+    fun test_events(account: &signer) acquires Account {
+        let addr = signer::address_of(account);
+        create_account_unchecked(addr);
+        register_coin<FakeCoin>(addr);
+
+        let eventhandle = &borrow_global<Account>(addr).coin_register_events;
+        let event = CoinRegisterEvent { type_info: type_info::type_of<FakeCoin>() };
+
+        let events = event::emitted_events_by_handle(eventhandle);
+        assert!(vector::length(&events) == 1, 0);
+        assert!(vector::borrow(&events, 0) == &event, 1);
+        assert!(event::was_event_emitted_by_handle(eventhandle, &event), 2);
+
+        let event = CoinRegisterEvent { type_info: type_info::type_of<SadFakeCoin>() };
+        assert!(!event::was_event_emitted_by_handle(eventhandle, &event), 3);
     }
 }
