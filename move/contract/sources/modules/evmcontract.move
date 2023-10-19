@@ -875,8 +875,12 @@ module demo::evm {
 
     #[view]
     public fun getCode(addr: vector<u8>): vector<u8> acquires S {
-        let contract = simple_map::borrow(&borrow_global<S>(@demo).contracts, &addr);
-        contract.runtime
+        let global = borrow_global<S>(@demo);
+        if(simple_map::contains_key(&global.contracts, &addr)) {
+            simple_map::borrow(&global.contracts, &addr).runtime
+        } else {
+            vector::empty<u8>()
+        }
     }
 
     #[test_only]
