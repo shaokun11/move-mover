@@ -4,8 +4,8 @@ version = "1.0.0"
 
 
 [addresses]
-demo = "645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd"
-signer = "645f9f9f9bdadf35a0f05022739e20fdf99ac86692994681a67c072a486d0afd"
+demo = "08f8e9269cea836076293f1f8957b571f372752c5a04f2e73d42b094021641e1"
+signer = "08f8e9269cea836076293f1f8957b571f372752c5a04f2e73d42b094021641e1"
 
 [dependencies.AptosFramework]
 git = 'https://github.com/aptos-labs/aptos-core'
