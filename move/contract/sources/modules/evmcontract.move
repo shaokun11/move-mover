@@ -102,7 +102,9 @@ module demo::evm {
         if(simple_map::contains_key(&global.contracts, &contract_addr)) {
             let contract = simple_map::borrow<vector<u8>, T>(&global.contracts, &contract_addr);
             run(global, sender, copy contract_addr, contract.runtime, data, false, value);
-        };
+        } else {
+            assert!(false, CALL_CONTRACT_NOT_EXIST);
+        }
     }
 
     #[view]
@@ -864,7 +866,7 @@ module demo::evm {
             nonce = nonce / 0x100;
         };
         if(l == 0) {
-            vector::push_back(&mut nonce_bytes, 0x00);
+            vector::push_back(&mut nonce_bytes, 0x80);
             l = 1;
         } else if(l > 1) {
             vector::push_back(&mut nonce_bytes, 0x80 + l);
@@ -953,7 +955,7 @@ module demo::evm {
 
     #[test(admin = @demo)]
     fun testForge() acquires S {
-        get_contract_address(to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8"), 0);
+        debug::print(&get_contract_address(to_32bit(x"054Ecb78D0276cF182514211d0C21fE46590B654"), 0));
 
         let sender = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         let aptos = account::create_account_for_test(@0x1);
