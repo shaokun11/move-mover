@@ -7,14 +7,14 @@ compiled_package_info:
     aptos_std: "0000000000000000000000000000000000000000000000000000000000000001"
     aptos_token: "0000000000000000000000000000000000000000000000000000000000000003"
     core_resources: 000000000000000000000000000000000000000000000000000000000a550c18
-    demo: 08f8e9269cea836076293f1f8957b571f372752c5a04f2e73d42b094021641e1
-    signer: 08f8e9269cea836076293f1f8957b571f372752c5a04f2e73d42b094021641e1
+    demo: 10f2421638da65034fd24cca64ca759dba70a0e913d92d0991f22c26f07ee5ec
+    signer: 10f2421638da65034fd24cca64ca759dba70a0e913d92d0991f22c26f07ee5ec
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: B2BEA6E0CD20CEB41B03231EEB98259C4CB6CD741B936652CBCE063F2CDB3F88
+  source_digest: D896EDC4D4729CD9421FAE815B71B213FD425E78F8336872174723A0E1A2060F
   build_flags:
-    dev_mode: true
-    test_mode: true
+    dev_mode: false
+    test_mode: false
     generate_docs: false
     generate_abis: false
     install_dir: ~
@@ -22,7 +22,7 @@ compiled_package_info:
     additional_named_addresses: {}
     architecture: ~
     fetch_deps_only: false
-    skip_fetch_latest_git_deps: true
+    skip_fetch_latest_git_deps: false
     bytecode_version: ~
 dependencies:
   - AptosFramework
