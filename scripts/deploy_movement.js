@@ -3,10 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const client = new AptosClient("https://seed-node1-rpc.movementlabs.xyz");
 const { keccak256 } = require("ethers");
-let pk = "0x9380c4b6e92c7e36ab14f60045d0eb44afc318d6fe626c4669822e580d54790a";
+let pk = "0x544cceb95629241e55565ccb8fa6718b31e9114f6475a6a4e5fdce2fb12fc693";
 let owner = new AptosAccount(new HexString(pk).toUint8Array())
 let zeros = "0x0000000000000000000000000000000000000000000000000000000000000000"
-let alice = "0x000000000000000000000000892a2b7cF919760e148A0d33C1eb0f44D3b383f8".toLowerCase()
+let alice = "0x000000000000000000000000d25f846911bAB00fEd5da31eaB8d4812d00fD100".toLowerCase()
 let aliceEthAddress = "0x" + alice.slice(26)
 let amount_1 = "500000000000000000"
 
@@ -248,8 +248,8 @@ async function deploy() {
 }
 
 async function run() {
-    // await deposit()
-    await deploy()
+    await deposit()
+    // await deploy()
     // await uniswap()
     // await uniswap2()
     // await mint("0xE4dbFd60e3B20E2018dC07fd88148C0D7D966aB2".toLowerCase())
