@@ -260,6 +260,11 @@ module std::features {
     public fun sponsored_automatic_account_creation_enabled(): bool acquires Features {
         is_enabled(SPONSORED_AUTOMATIC_ACCOUNT_CREATION)
     }
+
+    /// Whether the fix to reduce the maximum identifer length is enabled.
+    /// Lifetime: transient
+    const LIMIT_MAX_IDENTIFIER_LENGTH: u64 = 38;
+
     // ============================================================================================
     // Feature Flag Implementation
 

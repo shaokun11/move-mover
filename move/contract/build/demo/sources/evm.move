@@ -102,8 +102,6 @@ module demo::evm {
         if(simple_map::contains_key(&global.contracts, &contract_addr)) {
             let contract = simple_map::borrow<vector<u8>, T>(&global.contracts, &contract_addr);
             run(global, sender, copy contract_addr, contract.runtime, data, false, value);
-        } else {
-            assert!(false, CALL_CONTRACT_NOT_EXIST);
         }
     }
 

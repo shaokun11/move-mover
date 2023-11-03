@@ -32,7 +32,8 @@ module demo::evmtx {
         to: vector<u8>,
         nonce: u256,
         data: vector<u8>,
-        gas_fee: u256
+        gas_fee: u256,
+        _tx_type: u64,
     ) {
         checkCaller(account);
         coin::transfer<AptosCoin>(account, @demo, (gas_fee as u64));
