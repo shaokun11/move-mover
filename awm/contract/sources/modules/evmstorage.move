@@ -1,0 +1,73 @@
+module demo::evmstorage {
+    use aptos_std::simple_map;
+    use demo::util::{checkCaller};
+
+    const INSUFFICIENT_BALANCE: u64 = 101;
+    const INVALID_NONCE: u64 = 102;
+
+    struct R has key {
+        accounts: simple_map::SimpleMap<vector<u8>, Account>,
+        total_fee: u256
+    }
+
+    struct Account has key, store {
+        nonce: u256,
+        addr: vector<u8>,
+        balance: u256,
+        is_contract: bool
+    }
+
+
+
+    entry fun init_module(account: &signer) {
+        move_to(account, R {
+            accounts: simple_map::create<vector<u8>, Account>(),
+            total_fee: 0
+        });
+    }
+
+    public fun createAccount(addr: vector<u8>, is_contract: bool) acquires R {
+        let global = borrow_global_mut<R>(@demo);
+        if (!simple_map::contains_key(&global.accounts, &addr)) {
+            simple_map::add(&mut global.accounts, addr, Account {
+                nonce: 0,
+                addr,
+                balance: 0,
+                is_contract
+            })
+        };
+    }
+
+    public fun update(account: &signer, from: vector<u8>, to: vector<u8>, nonce:u256, value: u256, gas_fee: u256) acquires R {
+        checkCaller(account);
+        let global = borrow_global_mut<R>(@demo);
+        global.total_fee = global.total_fee + gas_fee;
+        let to_account = simple_map::borrow_mut(&mut global.accounts, &to);
+        to_account.balance = to_account.balance + value;
+
+        let from_account = simple_map::borrow_mut(&mut global.accounts, &from);
+        assert!(from_account.balance >= value + gas_fee, INSUFFICIENT_BALANCE);
+        assert!(from_account.nonce == nonce, INVALID_NONCE);
+
+        from_account.balance = from_account.balance - value - gas_fee;
+        from_account.nonce = from_account.nonce + 1;
+    }
+
+    public fun addBalance(account: &signer, to: vector<u8>, amount: u256) acquires R {
+        checkCaller(account);
+        createAccount(to, false);
+        let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &to);
+        account.balance = account.balance + amount;
+    }
+
+    #[view]
+    public fun getAccount(addr: vector<u8>): (u256, u256) acquires R {
+        let account = simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr);
+        (account.balance, account.nonce)
+    }
+
+    #[test_only]
+    public fun init_module_for_test(account: &signer) {
+        init_module(account);
+    }
+}
