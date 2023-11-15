@@ -50,15 +50,6 @@ module demo::evm {
         topic1: vector<u8>
     }
 
-    struct Log4Event has drop, store {
-        contract: vector<u8>,
-        data: vector<u8>,
-        topic0: vector<u8>,
-        topic1: vector<u8>,
-        topic2: vector<u8>,
-        topic3: vector<u8>
-    }
-
     struct T has key, store {
         storage: SimpleMap<u256, vector<u8>>,
         runtime: vector<u8>,
@@ -70,32 +61,15 @@ module demo::evm {
         log1Event: EventHandle<Log1Event>,
         log2Event: EventHandle<Log2Event>,
         log3Event: EventHandle<Log3Event>,
-        log4Event: EventHandle<Log4Event>
     }
 
-    entry fun init_module(account: &signer) acquires S {
+    entry fun init_module(account: &signer) {
         move_to(account, S {
             contracts: simple_map::create<vector<u8>, T>(),
             log1Event: new_event_handle<Log1Event>(account),
             log2Event: new_event_handle<Log2Event>(account),
             log3Event: new_event_handle<Log3Event>(account),
-            log4Event: new_event_handle<Log4Event>(account)
         });
-
-        predeploy();
-    }
-
-    fun predeploy() acquires S {
-        let global = borrow_global_mut<S>(@demo);
-        let construct = x"608060405234801561001057600080fd5b50610193806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c806324b9c5a214610030575b600080fd5b61004361003e366004610099565b610045565b005b336001600160a01b0316836001600160a01b0316857f3e6ad4991eb8370644656486297eb0bf6a7792ef369dfd9eda2c51ec82b67b59858560405161008b92919061012e565b60405180910390a450505050565b600080600080606085870312156100af57600080fd5b8435935060208501356001600160a01b03811681146100cd57600080fd5b9250604085013567ffffffffffffffff808211156100ea57600080fd5b818701915087601f8301126100fe57600080fd5b81358181111561010d57600080fd5b88602082850101111561011f57600080fd5b95989497505060200194505050565b60208152816020820152818360408301376000818301604090810191909152601f909201601f1916010191905056fea264697066735822122088a8e5b534f7fbfbaa14790ebd421503e493261841fb0e313cbd28336d4da06964736f6c63430008110033";
-        let contract_addr = WRAP_CONTRACT_ADDR;
-        simple_map::add(&mut global.contracts, contract_addr, T {
-            storage: simple_map::create<u256, vector<u8>>(),
-            runtime: x"",
-            nonce: 1
-        });
-        let runtime = run(global, ZERO_BYTES, ZERO_BYTES, WRAP_CONTRACT_ADDR, construct, x"", false, 0);
-        simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).runtime = runtime;
     }
 
     public fun deploy(account: &signer, sender: vector<u8>, nonce: u256, construct: vector<u8>, value: u256): vector<u8> acquires S {
@@ -819,28 +793,6 @@ module demo::evm {
                         topic0,
                         topic1,
                         topic2
-                    },
-                );
-                i = i + 1
-            }
-                //log4
-            else if(opcode == 0xa4) {
-                let pos = vector::pop_back(stack);
-                let len = vector::pop_back(stack);
-                let data = slice(*memory, pos, len);
-                let topic0 = u256_to_data(vector::pop_back(stack));
-                let topic1 = u256_to_data(vector::pop_back(stack));
-                let topic2 = u256_to_data(vector::pop_back(stack));
-                let topic3 = u256_to_data(vector::pop_back(stack));
-                event::emit_event<Log4Event>(
-                    &mut global.log4Event,
-                    Log4Event {
-                        contract: contract_addr,
-                        data,
-                        topic0,
-                        topic1,
-                        topic2,
-                        topic3
                     },
                 );
                 i = i + 1

@@ -63,7 +63,7 @@ module demo::evm {
         log3Event: EventHandle<Log3Event>,
     }
 
-    entry fun init_module(account: &signer) acquires S {
+    entry fun init_module(account: &signer) {
         move_to(account, S {
             contracts: simple_map::create<vector<u8>, T>(),
             log1Event: new_event_handle<Log1Event>(account),
