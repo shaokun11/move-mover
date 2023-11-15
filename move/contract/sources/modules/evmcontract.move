@@ -37,6 +37,11 @@ module demo::evm {
         topic2: vector<u8>
     }
 
+    struct Log0Event has drop, store {
+        contract: vector<u8>,
+        data: vector<u8>
+    }
+
     struct Log1Event has drop, store {
         contract: vector<u8>,
         data: vector<u8>,
@@ -67,6 +72,7 @@ module demo::evm {
 
     struct S has key {
         contracts: simple_map::SimpleMap<vector<u8>, T>,
+        log0Event: EventHandle<Log0Event>,
         log1Event: EventHandle<Log1Event>,
         log2Event: EventHandle<Log2Event>,
         log3Event: EventHandle<Log3Event>,
@@ -76,6 +82,7 @@ module demo::evm {
     entry fun init_module(account: &signer) acquires S {
         move_to(account, S {
             contracts: simple_map::create<vector<u8>, T>(),
+            log0Event: new_event_handle<Log0Event>(account),
             log1Event: new_event_handle<Log1Event>(account),
             log2Event: new_event_handle<Log2Event>(account),
             log3Event: new_event_handle<Log3Event>(account),
@@ -768,6 +775,20 @@ module demo::evm {
                 // debug::print(memory);
                 i = i + 1;
                 assert!(false, (opcode as u64));
+            }
+                //log0
+            else if(opcode == 0xa0) {
+                let pos = vector::pop_back(stack);
+                let len = vector::pop_back(stack);
+                let data = slice(*memory, pos, len);
+                event::emit_event<Log0Event>(
+                    &mut global.log1Event,
+                    Log0Event{
+                        contract: contract_addr,
+                        data,
+                    },
+                );
+                i = i + 1
             }
                 //log1
             else if(opcode == 0xa1) {
