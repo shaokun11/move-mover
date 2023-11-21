@@ -5,4 +5,8 @@ module demo::util {
     public fun checkCaller(account: &signer) {
         assert!(signer::address_of(account) == @signer, INVALID_CALLER);
     }
+
+    public fun checkSelf(account: &signer) {
+        assert!(signer::address_of(account) == @demo, INVALID_CALLER);
+    }
 }

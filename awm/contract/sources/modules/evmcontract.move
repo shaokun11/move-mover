@@ -17,6 +17,7 @@ module demo::evm {
     use aptos_framework::account;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+    use demo::evmstorage::transfer;
 
     const INVALID_SENDER: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
@@ -136,6 +137,8 @@ module demo::evm {
         if(simple_map::contains_key(&global.contracts, &contract_addr)) {
             let contract = simple_map::borrow<vector<u8>, T>(&global.contracts, &contract_addr);
             run(global, sender, sender, copy contract_addr, contract.runtime, data, false, value);
+        } else {
+            transfer(sender, contract_addr, value);
         }
     }
 
@@ -147,6 +150,7 @@ module demo::evm {
     }
 
     fun run(global: &mut S, sender: vector<u8>, origin: vector<u8>, contract_addr: vector<u8>, code: vector<u8>, data: vector<u8>, readOnly: bool, value: u256): vector<u8> {
+        transfer(sender, contract_addr, value);
         let stack = &mut vector::empty<u256>();
         let memory = &mut vector::empty<u8>();
         let storage = simple_map::borrow_mut<vector<u8>, T>(&mut global.contracts, &contract_addr).storage;
@@ -686,7 +690,7 @@ module demo::evm {
                     if (opcode == 0xfa) {
                         vector::push_back(stack, 0);
                     } else {
-                        assert!(false, CALL_CONTRACT_NOT_EXIST);
+                        transfer(contract_addr, dest_addr, msg_value);
                     }
                 };
                 // debug::print(&opcode);

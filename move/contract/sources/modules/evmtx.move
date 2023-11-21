@@ -14,10 +14,10 @@ module demo::evmtx {
     // #[test_only]
     // use demo::evmstorage;
     use demo::util::checkCaller;
+    // use aptos_framework::transaction_context;
+    // use aptos_framework::coin::merge;
     // #[test_only]
     // use std::signer;
-
-
     const INSUFFICIENT_BALANCE: u64 = 1;
     const INVALID_SIGNER: u64 = 2;
     const INVALID_NONCE: u64 = 3;
@@ -64,6 +64,7 @@ module demo::evmtx {
 
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
         coin::transfer<AptosCoin>(account, @demo, ((amount / CONVERT_BASE) as u64));
+        // coin::withdraw<>()
         addBalance(account, to, amount);
     }
 

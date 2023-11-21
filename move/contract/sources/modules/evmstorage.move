@@ -4,6 +4,7 @@ module demo::evmstorage {
 
     const INSUFFICIENT_BALANCE: u64 = 101;
     const INVALID_NONCE: u64 = 102;
+    const INSUFFICIENT_TRANSFER_BALANCE: u64 = 103;
 
     struct R has key {
         accounts: simple_map::SimpleMap<vector<u8>, Account>,
@@ -47,8 +48,20 @@ module demo::evmstorage {
         assert!(from_account.balance >= value + gas_fee, INSUFFICIENT_BALANCE);
         assert!(from_account.nonce == nonce, INVALID_NONCE);
 
-        from_account.balance = from_account.balance - value - gas_fee;
+        from_account.balance = from_account.balance - gas_fee;
         from_account.nonce = from_account.nonce + 1;
+    }
+
+    public fun transfer(from: vector<u8>, to: vector<u8>, amount: u256) acquires R {
+        if(amount > 0) {
+            let global = borrow_global_mut<R>(@demo);
+            let from_account = simple_map::borrow_mut(&mut global.accounts, &from);
+            assert!(from_account.balance >= amount, INSUFFICIENT_TRANSFER_BALANCE);
+            from_account.balance = from_account.balance - amount;
+
+            let to_account = simple_map::borrow_mut(&mut global.accounts, &to);
+            to_account.balance = to_account.balance - amount;
+        }
     }
 
     public fun addBalance(account: &signer, to: vector<u8>, amount: u256) acquires R {
@@ -60,8 +73,12 @@ module demo::evmstorage {
 
     #[view]
     public fun getAccount(addr: vector<u8>): (u256, u256) acquires R {
-        let account = simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr);
-        (account.balance, account.nonce)
+        if(simple_map::contains_key(&borrow_global<R>(@demo).accounts, &addr)) {
+            let account = simple_map::borrow(&borrow_global<R>(@demo).accounts, &addr);
+            (account.balance, account.nonce)
+        } else {
+            (0, 0)
+        }
     }
 
     #[test_only]
