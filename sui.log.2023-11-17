@@ -1,0 +1,9 @@
+2023-11-17T00:38:21.783705Z  INFO sui::client_commands: Added new Sui env [m2] to config.
+2023-11-17T00:43:34.161768Z  INFO sui::client_commands: local => http://127.0.0.1:9000 (active)
+2023-11-17T00:43:34.162533Z  INFO sui::client_commands: m2 => https://fullnode.devnet.sui.io:443
+2023-11-17T01:03:28.825928Z  INFO sui::client_commands: local => https://sui.bbd.sh/rpc (active)
+2023-11-17T01:03:28.826689Z  INFO sui::client_commands: m2 => https://fullnode.devnet.sui.io:443
+2023-11-17T01:05:34.098103Z  INFO sui::client_commands: Active environment switched to [local]
+2023-11-17T01:05:49.236244Z  INFO sui::client_commands: 0x1b42e68a477cada3a9e7c49ae868ac0eb73fe12ab7cc1c60d9ba8877be84f934
+2023-11-17T03:59:20.156584Z  INFO sui::client_commands: Added new Sui env [local2] to config.
+2023-11-17T04:10:04.142739Z  INFO sui::client_commands: Added new Sui env [movement] to config.
