@@ -60,7 +60,7 @@ module demo::evmstorage {
             from_account.balance = from_account.balance - amount;
 
             let to_account = simple_map::borrow_mut(&mut global.accounts, &to);
-            to_account.balance = to_account.balance - amount;
+            to_account.balance = to_account.balance + amount;
         }
     }
 
