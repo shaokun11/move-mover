@@ -14,6 +14,19 @@ module demo::evmtx {
     // #[test_only]
     // use demo::evmstorage;
     use demo::util::checkCaller;
+    #[test_only]
+    use aptos_framework::account;
+    #[test_only]
+    use demo::evmstorage;
+    #[test_only]
+    use std::string;
+    #[test_only]
+    use std::signer;
+    #[test_only]
+    use aptos_std::debug;
+    #[test_only]
+    use std::string::utf8;
+
     // use aptos_framework::transaction_context;
     // use aptos_framework::coin::merge;
     // #[test_only]
@@ -81,45 +94,45 @@ module demo::evmtx {
         bytes
     }
 
-    // #[test(admin = @demo)]
-    // fun test() {
-    //     let aptos = account::create_account_for_test(@0x1);
-    //     let caller = account::create_account_for_test(@signer);
-    //     // let evm = account::create_account_for_test(@demo);
-    //
-    //     evmstorage::init_module_for_test(&caller);
-    //     evm::init_module_for_test(&caller);
-    //     let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
-    //         &aptos,
-    //         string::utf8(b"APT"),
-    //         string::utf8(b"APT"),
-    //         8,
-    //         false,
-    //     );
-    //     coin::register<AptosCoin>(&caller);
-    //     // coin::register<AptosCoin>(&evm);
-    //
-    //     let coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
-    //     coin::deposit(signer::address_of(&caller), coins);
-    //     coin::destroy_mint_cap(mint_cap);
-    //     coin::destroy_freeze_cap(freeze_cap);
-    //     coin::destroy_burn_cap(burn_cap);
-    //
-    //     //test deposit
-    //     let alice = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
-    //     let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
-    //     deposit(&caller, 100000000000000000000, alice);
-    //     // debug::print(&borrow_global<R>(@demo).accounts);
-    //     debug::print(&utf8(b"alice transfer 1 apt to bob"));
-    //     sendTx(&caller, 1000000000000000000, alice, bob, 0, x"", 10000);
-    //     // debug::print(&borrow_global<R>(@demo).accounts);
-    //
-    //     debug::print(&utf8(b"alice deploy a single contract"));
-    //     let data = x"6080604052348015600e575f80fd5b5060a58061001b5f395ff3fe6080604052348015600e575f80fd5b50600436106030575f3560e01c80632e64cec11460345780636057361d146048575b5f80fd5b5f5460405190815260200160405180910390f35b605760533660046059565b5f55565b005b5f602082840312156068575f80fd5b503591905056fea26469706673582212206a98897a49d701ccfc0a55b6148c8005628cdbc6cfbe2fddb9a8357f498d15e764736f6c63430008150033";
-    //     sendTx(&caller, 0, alice, ZERO_ADDR, 1, data, 100000);
-    //
-    //     // debug::print(&borrow_global<R>(@demo).accounts);
-    //     // let data = x"252dba42000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000d8cdb8f68f35f36959044c56f60e5081e6a0ff37000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000040902f1ac00000000000000000000000000000000000000000000000000000000";
-    //     // query(alice, alice, data);
-    // }
+    #[test(admin = @demo)]
+    fun test() {
+        let aptos = account::create_account_for_test(@0x1);
+        let caller = account::create_account_for_test(@signer);
+        // let evm = account::create_account_for_test(@demo);
+
+        evmstorage::init_module_for_test(&caller);
+        evm::init_module_for_test(&caller);
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
+            &aptos,
+            string::utf8(b"APT"),
+            string::utf8(b"APT"),
+            8,
+            false,
+        );
+        coin::register<AptosCoin>(&caller);
+        // coin::register<AptosCoin>(&evm);
+
+        let coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
+        coin::deposit(signer::address_of(&caller), coins);
+        coin::destroy_mint_cap(mint_cap);
+        coin::destroy_freeze_cap(freeze_cap);
+        coin::destroy_burn_cap(burn_cap);
+
+        //test deposit
+        let alice = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
+        // let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
+        deposit(&caller, 100000000000000000000, alice);
+        // // debug::print(&borrow_global<R>(@demo).accounts);
+        // debug::print(&utf8(b"alice transfer 1 apt to bob"));
+        // sendTx(&caller, 1000000000000000000, alice, bob, 0, x"", 10000);
+        // // debug::print(&borrow_global<R>(@demo).accounts);
+
+        debug::print(&utf8(b"alice deploy a single contract"));
+        let data = x"6080604052348015600e575f80fd5b5060a58061001b5f395ff3fe6080604052348015600e575f80fd5b50600436106030575f3560e01c80632e64cec11460345780636057361d146048575b5f80fd5b5f5460405190815260200160405180910390f35b605760533660046059565b5f55565b005b5f602082840312156068575f80fd5b503591905056fea26469706673582212206a98897a49d701ccfc0a55b6148c8005628cdbc6cfbe2fddb9a8357f498d15e764736f6c63430008150033";
+        sendTx(&caller, 0, alice, ZERO_ADDR, 0, data, 100000, 1);
+
+        // debug::print(&borrow_global<R>(@demo).accounts);
+        // let data = x"252dba42000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000d8cdb8f68f35f36959044c56f60e5081e6a0ff37000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000040902f1ac00000000000000000000000000000000000000000000000000000000";
+        // query(alice, alice, data);
+    }
 }
