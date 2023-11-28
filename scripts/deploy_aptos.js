@@ -248,8 +248,9 @@ async function deploy() {
 }
 
 async function run() {
+    await getNonce();
     // await deposit()
-    await deploy()
+    // await deploy()
     // await uniswap()
     // await uniswap2()
     // await mint("0xE4dbFd60e3B20E2018dC07fd88148C0D7D966aB2".toLowerCase())

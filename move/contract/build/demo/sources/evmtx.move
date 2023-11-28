@@ -3,7 +3,7 @@ module demo::evmtx {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin;
     use demo::evm::call;
-    use demo::evmstorage::{createAccount, update, addBalance};
+    use demo::evmstorage::{createAccount, update, addBalance, subBalance};
 
     // #[test_only]
     // use aptos_framework::account;
@@ -76,6 +76,11 @@ module demo::evmtx {
         evm::view(from, to, data)
     }
 
+    public entry fun withdraw(account: &signer, from: vector<u8>, amount: u256, gas: u256, to: address) {
+        subBalance(account, from, amount, gas);
+        coin::transfer<AptosCoin>(account, to, ((amount / CONVERT_BASE) as u64))
+    }
+
     public entry fun deposit(account: &signer, amount: u256, to: vector<u8>) {
         coin::transfer<AptosCoin>(account, @demo, ((amount / CONVERT_BASE) as u64));
         // coin::withdraw<>()
@@ -122,7 +127,11 @@ module demo::evmtx {
         //test deposit
         let alice = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         // let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
-        deposit(&caller, 100000000000000000000, alice);
+
+        let two = account::create_account_for_test(@0x2);
+        coin::register<AptosCoin>(&two);
+        deposit(&caller, 500000000000000000000, alice);
+        withdraw(&caller, alice, 100000000000000000000, 0, @0x2);
         // // debug::print(&borrow_global<R>(@demo).accounts);
         // debug::print(&utf8(b"alice transfer 1 apt to bob"));
         // sendTx(&caller, 1000000000000000000, alice, bob, 0, x"", 10000);

@@ -64,11 +64,17 @@ module demo::evmstorage {
         }
     }
 
-    public fun addBalance(account: &signer, to: vector<u8>, amount: u256) acquires R {
-        checkCaller(account);
+    public fun addBalance(_signer: &signer, to: vector<u8>, amount: u256) acquires R {
         createAccount(to, false);
         let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &to);
         account.balance = account.balance + amount;
+    }
+
+    public fun subBalance(signer: &signer, from: vector<u8>, amount: u256, gas: u256) acquires R {
+        checkCaller(signer);
+        let account = simple_map::borrow_mut(&mut borrow_global_mut<R>(@demo).accounts, &from);
+        assert!(account.balance >= amount + gas, INSUFFICIENT_BALANCE);
+        account.balance = account.balance - amount - gas;
     }
 
     #[view]

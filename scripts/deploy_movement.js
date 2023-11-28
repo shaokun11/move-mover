@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const client = new AptosClient("https://seed-node1-rpc.movementlabs.xyz");
 const { keccak256 } = require("ethers");
-let pk = "0x8f849ce18c1f2385996b417b989568b339c408f668b91b6dc19e7e7cd6f6fbb4";
+let pk = "0x7c1851ffbbe3031e9716e38e77c5b8f4730b476f17ba38227fedf70a44387d36";
 let owner = new AptosAccount(new HexString(pk).toUint8Array())
 let zeros = "0x0000000000000000000000000000000000000000000000000000000000000000"
 let alice = "0x000000000000000000000000d25f846911bAB00fEd5da31eaB8d4812d00fD100".toLowerCase()
@@ -38,7 +38,7 @@ async function deposit() {
 }
 
 async function getNonce(addr) {
-    let resource = await client.getAccountResource(owner.address(), `${owner.address()}::evmstorage::R`, [])
+    let resource = await client.getAccountResource(owner.address(), `0x6c7efc6b3b0f2a3240736b0efaf514c7aa3c3de79c5e9b82dc72c8fe93b15ec2::evmstorage::R`, [])
     return parseInt(resource.data.accounts.data.find(i => i.key == addr).value.nonce)
 }
 
@@ -248,7 +248,8 @@ async function deploy() {
 }
 
 async function run() {
-    await deposit()
+    await getNonce()
+    // await deposit()
     // await deploy()
     // await uniswap()
     // await uniswap2()
