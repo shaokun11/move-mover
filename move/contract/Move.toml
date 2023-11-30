@@ -19,10 +19,10 @@ subdir = 'aptos-move/framework/aptos-stdlib'
 
 #[dependencies.AptosFramework]
 #git = 'https://github.com/shaokun11/move-me2'
-#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#rev = 'acf53c7de6982aee4747b1ff47908326da52487c'
 #subdir = 'aptos-move/framework/aptos-framework'
 #
 #[dependencies.AptosStdlib]
 #git = 'https://github.com/shaokun11/move-me2'
-#rev = 'c19ab08d7eea43757963ba702a94169e2400afde'
+#rev = 'acf53c7de6982aee4747b1ff47908326da52487c'
 #subdir = 'aptos-move/framework/aptos-stdlib'

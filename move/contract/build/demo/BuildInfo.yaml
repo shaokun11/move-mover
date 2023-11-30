@@ -11,7 +11,7 @@ compiled_package_info:
     signer: 10f2421638da65034fd24cca64ca759dba70a0e913d92d0991f22c26f07ee5ec
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     vm_reserved: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 269204C3D9A217383329F2284A6370B26CE2F531F0A0A90662471EF63632B0B8
+  source_digest: 7D45FA8A5A3F9436636D61EAA9E82485028884B98988CFF5B59F6A70D0A8CE79
   build_flags:
     dev_mode: true
     test_mode: true
@@ -23,7 +23,23 @@ compiled_package_info:
     architecture: ~
     fetch_deps_only: false
     skip_fetch_latest_git_deps: false
-    bytecode_version: ~
+    compiler_config:
+      bytecode_version: ~
+      known_attributes:
+        - bytecode_instruction
+        - deprecated
+        - event
+        - expected_failure
+        - legacy_entry_fun
+        - native_interface
+        - resource_group
+        - resource_group_member
+        - test
+        - test_only
+        - verify_only
+        - view
+      skip_attribute_checks: false
+      compiler_version: ~
 dependencies:
   - AptosFramework
   - AptosStdlib

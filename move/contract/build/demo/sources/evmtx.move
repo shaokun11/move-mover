@@ -28,6 +28,7 @@ module demo::evmtx {
     use std::string::utf8;
     #[test_only]
     use aptos_framework::timestamp::set_time_has_started_for_testing;
+    // use aptos_framework::create_signer;
 
     // use aptos_framework::transaction_context;
     // use aptos_framework::coin::merge;
@@ -65,6 +66,8 @@ module demo::evmtx {
         };
 
         update(account, from, to, nonce, value, gas_fee * CONVERT_BASE);
+
+        // create_signer
     }
 
     public entry fun test_query(from: vector<u8>, to: vector<u8>, data: vector<u8>) {
@@ -117,20 +120,29 @@ module demo::evmtx {
         );
         coin::register<AptosCoin>(&caller);
         // coin::register<AptosCoin>(&evm);
+        let three = account::create_account_for_test(@0x3);
+        coin::register<AptosCoin>(&three);
 
         let coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
         coin::deposit(signer::address_of(&caller), coins);
+
+        coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
+        coin::deposit(@0x3, coins);
+
         coin::destroy_mint_cap(mint_cap);
         coin::destroy_freeze_cap(freeze_cap);
         coin::destroy_burn_cap(burn_cap);
+
+
 
         //test deposit
         let alice = to_32bit(x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8");
         // let bob = to_32bit(x"2D83750BDB3139eed1F76952dB472A512685E3e0");
 
         let two = account::create_account_for_test(@0x2);
+
         coin::register<AptosCoin>(&two);
-        deposit(&caller, 500000000000000000000, alice);
+        deposit(&three, 500000000000000000000, alice);
         withdraw(&caller, alice, 100000000000000000000, 0, @0x2);
         // // debug::print(&borrow_global<R>(@demo).accounts);
         // debug::print(&utf8(b"alice transfer 1 apt to bob"));
