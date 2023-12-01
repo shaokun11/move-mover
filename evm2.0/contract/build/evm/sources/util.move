@@ -4,6 +4,7 @@ module evm::util {
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
+    const ZERO_EVM_ADDR: vector<u8> = x"";
 
     public fun slice(data: vector<u8>, pos: u256, size: u256): vector<u8> {
         let s = vector::empty<u8>();
@@ -111,6 +112,18 @@ module evm::util {
         res
     }
 
+    public fun trim(data: vector<u8>): vector<u8> {
+        let i = 0;
+        let len = vector::length(&data);
+        while(i < vector::length(&data)) {
+            if(*vector::borrow(&data, i) != 0) {
+                break
+            };
+            i = i + 1
+        };
+        if(i == len) x"00" else slice(data, (i as u256), ((vector::length(&data) - i) as u256))
+    }
+
     public fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
         let len_m = vector::length(memory);
         let len_d = vector::length(&data);
@@ -131,6 +144,18 @@ module evm::util {
 
             i = i + 1
         };
+    }
+
+    public fun get_message_hash(nonce: u256, gas_price: u256, gas_limit: u256, to: vector<u8>, value: u256, data:vector<u8>): vector<u8> {
+        let bytes = trim(u256_to_data(nonce));
+        vector::append(&mut bytes, trim(u256_to_data(gas_price)));
+        vector::append(&mut bytes, trim(u256_to_data(gas_limit)));
+        if(to != ZERO_EVM_ADDR) {
+            vector::append(&mut bytes, to);
+        };
+        vector::append(&mut bytes, trim(u256_to_data(value)));
+        vector::append(&mut bytes, data);
+        bytes
     }
 }
 
