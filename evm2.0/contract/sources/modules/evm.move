@@ -1,4 +1,4 @@
-module evm::evm_impl {
+module evm::evm {
     #[test_only]
     use aptos_framework::account;
     // use std::vector;
@@ -151,6 +151,11 @@ module evm::evm_impl {
         create_account_if_not_exist(to);
         coin::transfer<AptosCoin>(sender, to, ((amount / CONVERT_BASE) as u64));
         add_balance(to, amount);
+    }
+
+    #[view]
+    public entry fun get_move_address(evm_addr: vector<u8>): address {
+        create_resource_address(&@evm, to_32bit(evm_addr))
     }
 
     #[view]
