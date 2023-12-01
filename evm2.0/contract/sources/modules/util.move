@@ -1,7 +1,7 @@
 module evm::util {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
-    use aptos_std::simple_map;
+    // use aptos_std::simple_map;
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
@@ -113,24 +113,24 @@ module evm::util {
         res
     }
 
-    public fun encode_array<Element>(data: vector<Element>): vector<u8> {
-        let len = 0;
-        vector::for_each_mut(&mut data, |e| {
-            // if(vector::)
-
-        });
-
-        let i = 0;
-        let len = vector::length(&data);
-        while(i < vector::length(&data)) {
-            if(*vector::borrow(&data, i) != 0) {
-                break
-            };
-            i = i + 1
-        };
-        slice(data, (i as u256), ((vector::length(&data) - i) as u256))
-        // if(i == len) x"00" else slice(data, (i as u256), ((vector::length(&data) - i) as u256))
-    }
+    // public fun encode_array<Element>(data: vector<Element>): vector<u8> {
+    //     let len = 0;
+    //     vector::for_each_mut(&mut data, |e| {
+    //         // if(vector::)
+    //
+    //     });
+    //
+    //     let i = 0;
+    //     let len = vector::length(&data);
+    //     while(i < vector::length(&data)) {
+    //         if(*vector::borrow(&data, i) != 0) {
+    //             break
+    //         };
+    //         i = i + 1
+    //     };
+    //     slice(data, (i as u256), ((vector::length(&data) - i) as u256))
+    //     // if(i == len) x"00" else slice(data, (i as u256), ((vector::length(&data) - i) as u256))
+    // }
 
     public fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
         let len_m = vector::length(memory);
@@ -154,17 +154,17 @@ module evm::util {
         };
     }
 
-    public fun get_message_hash(nonce: u256, gas_price: u256, gas_limit: u256, to: vector<u8>, value: u256, data:vector<u8>): vector<u8> {
-        let len = 0;
-        let bytes = trim(u256_to_data(nonce));
-        vector::append(&mut bytes, trim(u256_to_data(gas_price)));
-        vector::append(&mut bytes, trim(u256_to_data(gas_limit)));
-        if(to != ZERO_EVM_ADDR) {
-            vector::append(&mut bytes, to);
-        };
-        vector::append(&mut bytes, trim(u256_to_data(value)));
-        vector::append(&mut bytes, data);
-        bytes
-    }
+    // public fun get_message_hash(nonce: u256, gas_price: u256, gas_limit: u256, to: vector<u8>, value: u256, data:vector<u8>): vector<u8> {
+    //     let len = 0;
+    //     let bytes = trim(u256_to_data(nonce));
+    //     vector::append(&mut bytes, trim(u256_to_data(gas_price)));
+    //     vector::append(&mut bytes, trim(u256_to_data(gas_limit)));
+    //     if(to != ZERO_EVM_ADDR) {
+    //         vector::append(&mut bytes, to);
+    //     };
+    //     vector::append(&mut bytes, trim(u256_to_data(value)));
+    //     vector::append(&mut bytes, data);
+    //     bytes
+    // }
 }
 
