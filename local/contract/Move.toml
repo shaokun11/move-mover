@@ -1,0 +1,27 @@
+[package]
+name = "local"
+version = "1.0.0"
+
+
+[addresses]
+local = "c9ced9b9c3296100d9dbbed701b9543535f8eaf4b471b7db072a46eea4eb1d1f"
+
+#[dependencies.AptosFramework]
+#git = 'https://github.com/aptos-labs/aptos-core'
+#rev = 'devnet'
+#subdir = 'aptos-move/framework/aptos-framework'
+#
+#[dependencies.AptosStdlib]
+#git = 'https://github.com/aptos-labs/aptos-core'
+#rev = 'devnet'
+#subdir = 'aptos-move/framework/aptos-stdlib'
+
+[dependencies.AptosFramework]
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'acf53c7de6982aee4747b1ff47908326da52487c'
+subdir = 'aptos-move/framework/aptos-framework'
+
+[dependencies.AptosStdlib]
+git = 'https://github.com/shaokun11/move-me2'
+rev = 'acf53c7de6982aee4747b1ff47908326da52487c'
+subdir = 'aptos-move/framework/aptos-stdlib'

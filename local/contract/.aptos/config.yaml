@@ -1,0 +1,8 @@
+---
+profiles:
+  default:
+    private_key: "0x482cecd3907cd6571b4bea0c3bafc316c8e6037dbd16434ffc6882b71c614ea9"
+    public_key: "0x06a2394f025be1fb49730f9fc2ae32cdf3000efccaedb08863add225859f2fba"
+    account: c9ced9b9c3296100d9dbbed701b9543535f8eaf4b471b7db072a46eea4eb1d1f
+    rest_url: "http://0.0.0.0:8080/"
+    faucet_url: "http://0.0.0.0:8081/"

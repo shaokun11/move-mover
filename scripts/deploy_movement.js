@@ -248,7 +248,10 @@ async function deploy() {
 }
 
 async function run() {
-    await getNonce()
+    const client = new AptosClient("http://184.72.156.218:8080");
+    let t = await client.getTransactionByHash("0x3d68933f6c1a34558d82dba96fbbcfa666f5274cdaa403c1e21bd3eb42698088")
+    console.log(t);
+    // await getNonce()
     // await deposit()
     // await deploy()
     // await uniswap()

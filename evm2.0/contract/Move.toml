@@ -5,6 +5,7 @@ version = "1.0.0"
 
 [addresses]
 evm = "0x12"
+old_evm = "0x111"
 signer = "0x1"
 
 #[dependencies.AptosFramework]

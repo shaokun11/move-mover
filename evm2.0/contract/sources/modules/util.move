@@ -1,11 +1,12 @@
 module evm::util {
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
-    // use aptos_std::simple_map;
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     const U255_MAX: u256 = 57896044618658097711785492504343953926634992332820282019728792003956564819967;
     const ZERO_EVM_ADDR: vector<u8> = x"";
+
+    const TX_FORMAT: u64 = 20001;
 
     public fun slice(data: vector<u8>, pos: u256, size: u256): vector<u8> {
         let s = vector::empty<u8>();
@@ -82,6 +83,18 @@ module evm::util {
         (neg, num)
     }
 
+    public fun to_u256(data: vector<u8>): u256 {
+        let res = 0;
+        let i = 0;
+        let len = vector::length(&data);
+        while (i < len) {
+            let value = *vector::borrow(&data, i);
+            res = (res << 8) + (value as u256);
+            i = i + 1;
+        };
+        res
+    }
+
     public fun data_to_u256(data: vector<u8>, p: u256, size: u256): u256 {
         let res = 0;
         let i = 0;
@@ -113,25 +126,6 @@ module evm::util {
         res
     }
 
-    // public fun encode_array<Element>(data: vector<Element>): vector<u8> {
-    //     let len = 0;
-    //     vector::for_each_mut(&mut data, |e| {
-    //         // if(vector::)
-    //
-    //     });
-    //
-    //     let i = 0;
-    //     let len = vector::length(&data);
-    //     while(i < vector::length(&data)) {
-    //         if(*vector::borrow(&data, i) != 0) {
-    //             break
-    //         };
-    //         i = i + 1
-    //     };
-    //     slice(data, (i as u256), ((vector::length(&data) - i) as u256))
-    //     // if(i == len) x"00" else slice(data, (i as u256), ((vector::length(&data) - i) as u256))
-    // }
-
     public fun mstore(memory: &mut vector<u8>, pos: u256, data: vector<u8>) {
         let len_m = vector::length(memory);
         let len_d = vector::length(&data);
@@ -154,17 +148,77 @@ module evm::util {
         };
     }
 
-    // public fun get_message_hash(nonce: u256, gas_price: u256, gas_limit: u256, to: vector<u8>, value: u256, data:vector<u8>): vector<u8> {
-    //     let len = 0;
-    //     let bytes = trim(u256_to_data(nonce));
-    //     vector::append(&mut bytes, trim(u256_to_data(gas_price)));
-    //     vector::append(&mut bytes, trim(u256_to_data(gas_limit)));
-    //     if(to != ZERO_EVM_ADDR) {
-    //         vector::append(&mut bytes, to);
-    //     };
-    //     vector::append(&mut bytes, trim(u256_to_data(value)));
-    //     vector::append(&mut bytes, data);
-    //     bytes
+    public fun get_message_hash(input: vector<vector<u8>>): vector<u8> {
+        let i = 0;
+        let len = vector::length(&input);
+        let content = vector::empty<u8>();
+        while(i < len) {
+            let item = vector::borrow(&input, i);
+            let item_len = vector::length(item);
+            let encoded = if(item_len == 1 && *vector::borrow(item, 0) < 0x80) *item else encode_data(item, 0x80);
+            vector::append(&mut content, encoded);
+            i = i + 1;
+        };
+
+        encode_data(&content, 0xc0)
+    }
+
+    public fun u256_to_trimed_data(num: u256): vector<u8> {
+        trim(u256_to_data(num))
+    }
+
+    public fun trim(data: vector<u8>): vector<u8> {
+        let i = 0;
+        let len = vector::length(&data);
+        while (i < len) {
+            let ith = *vector::borrow(&data, i);
+            if(ith != 0) {
+                break
+            };
+            i = i + 1
+        };
+        slice(data, (i as u256), ((len - i) as u256))
+    }
+
+
+
+    // public fun decode_legacy_tx(data: vector<u8>): (u64, u256, u256, vector<u8>, u256, vector<u8>, u64, vector<u8>, vector<u8>) {
+    // public fun decode_legacy_tx(data: vector<u8>) {
+    //     let first_byte = *vector::borrow(&data, 0);
+    //     let len = (vector::length(&data) as u256);
+    //     if(first_byte > 0xf7) {
+    //         let l = ((first_byte - 0xf7) as u256);
+    //         let ll = to_u64(slice(data, 1, l));
+    //         assert!(ll > 56, TX_FORMAT);
+    //         let inner_bytes = slice(data, l + 1, len - l - 1);
+    //         while()
+    //     }
     // }
+
+    fun hex_length(len: u64): (u8, vector<u8>) {
+        let res = 0;
+        let bytes = vector::empty<u8>();
+        while(len > 0) {
+            res = res + 1;
+            vector::push_back(&mut bytes, ((len % 256) as u8));
+            len = len / 256;
+        };
+        vector::reverse(&mut bytes);
+        (res, bytes)
+    }
+
+    fun encode_data(data: &vector<u8>, offset: u8): vector<u8> {
+        let len = vector::length(data);
+        let res = vector::empty<u8>();
+        if(len < 56) {
+            vector::push_back(&mut res, (len as u8) + offset);
+        } else {
+            let(hex_len, len_bytes) = hex_length(len);
+            vector::push_back(&mut res, hex_len + offset + 55);
+            vector::append(&mut res, len_bytes);
+        };
+        vector::append(&mut res, *data);
+        res
+    }
 }
 
