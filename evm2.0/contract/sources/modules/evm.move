@@ -27,6 +27,7 @@ module evm::evm {
     use aptos_std::from_bcs::{to_address};
     use std::bcs::to_bytes;
     use evm::encode::encode_bytes_list;
+    use aptos_framework::transaction_validation;
 
     // #[test_only]
     // use aptos_framework::timestamp::set_time_has_started_for_testing;
@@ -174,6 +175,7 @@ module evm::evm {
 
     #[view]
     public fun query(sender:vector<u8>, contract_addr: vector<u8>, data: vector<u8>): vector<u8> acquires Account, ContractEvent {
+        contract_addr = to_32bit(contract_addr);
         let contract_store = borrow_global_mut<Account>(create_resource_address(&@evm, contract_addr));
         run(sender, sender, contract_addr, contract_store.code, data, true, 0)
     }
