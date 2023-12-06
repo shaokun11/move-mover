@@ -46,7 +46,9 @@ module evm::evm {
 
 
     const U256_MAX: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
-    const ZERO_ADDR: vector<u8> = x"";
+    const ZERO_ADDR: vector<u8> =      x"0000000000000000000000000000000000000000000000000000000000000000";
+    const ONE_ADDR: vector<u8> =       x"0000000000000000000000000000000000000000000000000000000000000001";
+    const TEST_ONE_ADDR: vector<u8> =  x"000000000000000000000000A4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00";
     const CHAIN_ID_BYTES: vector<u8> = x"0150";
 
     // struct Acc
@@ -125,7 +127,7 @@ module evm::evm {
                 u256_to_trimed_data(nonce),
                 u256_to_trimed_data(gas_price),
                 u256_to_trimed_data(gas_limit),
-                if(evm_to == ZERO_ADDR) x"" else evm_to,
+                evm_to,
                 u256_to_trimed_data(value),
                 data,
                 CHAIN_ID_BYTES,
@@ -136,39 +138,10 @@ module evm::evm {
             verify_signature(evm_from, message_hash, r, s, v);
             execute(to_32bit(evm_from), to_32bit(evm_to), (nonce as u64), data, value);
             add_balance(address_of(sender), gas * CONVERT_BASE);
+            sub_balance(create_resource_address(&@evm, evm_from), gas * CONVERT_BASE);
         } else {
             assert!(false, TX_NOT_SUPPORT);
         }
-    }
-
-    public entry fun withdraw(
-        sender: &signer,
-        evm_from: vector<u8>,
-        tx: vector<u8>,
-        gas: u256
-    ) acquires Account {
-        let decoded = decode_bytes_list(&tx);
-        let nonce = to_u256(*vector::borrow(&decoded, 0));
-        let to_bytes = *vector::borrow(&decoded, 1);
-        let amount = to_u256(*vector::borrow(&decoded, 2));
-        let v = to_u256(*vector::borrow(&decoded, 3));
-        let r = *vector::borrow(&decoded, 4);
-        let s = *vector::borrow(&decoded, 5);
-        let message_hash = keccak256(encode_bytes_list(vector[
-            u256_to_trimed_data(nonce),
-            to_bytes,
-            u256_to_trimed_data(amount),
-            CHAIN_ID_BYTES]));
-
-        verify_signature(evm_from, message_hash, r, s, (v as u64));
-        let to = to_address(to_32bit(to_bytes));
-
-        let signer = create_signer(@evm);
-        coin::transfer<AptosCoin>(&signer, to, ((amount / CONVERT_BASE) as u64));
-
-        let address_from = create_resource_address(&@evm, to_32bit(evm_from));
-        sub_balance(address_from, gas * CONVERT_BASE + amount);
-        add_balance(address_of(sender), gas * CONVERT_BASE);
     }
 
     public entry fun estimate_tx_gas(
@@ -184,18 +157,6 @@ module evm::evm {
         } else {
             assert!(false, TX_NOT_SUPPORT);
         }
-    }
-
-    public entry fun estimate_withdraw_gas(
-        evm_from: vector<u8>,
-        to: address,
-        amount: u256,
-    ) acquires Account {
-        let signer = create_signer(@evm);
-        coin::transfer<AptosCoin>(&signer, to, ((amount / CONVERT_BASE) as u64));
-
-        let address_from = create_resource_address(&@evm, to_32bit(evm_from));
-        sub_balance(address_from, amount);
     }
 
     public entry fun deposit(sender: &signer, evm_addr: vector<u8>, amount: u256) acquires Account {
@@ -241,7 +202,6 @@ module evm::evm {
         create_account_if_not_exist(address_from);
         create_account_if_not_exist(address_to);
         let account_store_to = borrow_global_mut<Account>(address_to);
-
         if(evm_to == ZERO_ADDR) {
             let evm_contract = get_contract_address(evm_from, nonce);
             let address_contract = create_resource_address(&@evm, evm_contract);
@@ -250,6 +210,13 @@ module evm::evm {
             borrow_global_mut<Account>(address_contract).is_contract = true;
             borrow_global_mut<Account>(address_contract).code = run(evm_from, evm_from, evm_contract, data, x"", false, value);
             evm_contract
+        } else if(evm_to == ONE_ADDR) {
+            let amount = data_to_u256(data, 36, 32);
+            let to = to_address(slice(data, 100, 32));
+            let signer = create_signer(@evm);
+            coin::transfer<AptosCoin>(&signer, to, ((amount / CONVERT_BASE) as u64));
+            sub_balance(address_from, amount);
+            x""
         } else {
             if(account_store_to.is_contract) {
                 run(evm_from, evm_from, evm_to, account_store_to.code, data, false, value)
@@ -1313,11 +1280,11 @@ module evm::evm {
     // }
 
     #[test(evm = @0x2)]
-    fun test_deposit_withdraw() acquires Account {
+    fun test_deposit_withdraw() acquires Account, ContractEvent {
         debug::print(&to_bytes(&@evm));
 
         // let sender = x"054ecb78d0276cf182514211d0c21fe46590b654";
-        let sender = x"892a2b7cF919760e148A0d33C1eb0f44D3b383f8";
+        let sender = x"edd3bce148f5acffd4ae7589d12cf51f7e4788c6";
         let aptos = account::create_account_for_test(@0x1);
         let (burn_cap, freeze_cap, mint_cap) = coin::initialize<AptosCoin>(
             &aptos,
@@ -1329,7 +1296,7 @@ module evm::evm {
 
 
         let evm = account::create_account_for_test(@evm);
-        let to = account::create_account_for_test(@0xf5c36986b8ee24b48c95eea89c50423c05ede7d09fd9e43f0375ae75dc90f88c);
+        let to = account::create_account_for_test(@0xc5cb1f1ce6951226e9c46ce8d42eda1ac9774a0fef91e2910939119ef0c95568);
         let coins = coin::mint<AptosCoin>(1000000000000, &mint_cap);
         coin::register<AptosCoin>(&to);
         coin::register<AptosCoin>(&evm);
@@ -1337,14 +1304,11 @@ module evm::evm {
 
         deposit(&evm, sender, 10000000000000000000);
 
-        let tx = x"f87080a0f5c36986b8ee24b48c95eea89c50423c05ede7d09fd9e43f0375ae75dc90f88c880de0b6b3a76400008202c4a0211d9c9de112bff8515959c28ad52278f5aa6d6caba8d32cfa18459567226797a02ca4ed02298eb4f8034a95569f5a82b998e12b950ce7b101eb41577bf4477b1a";
-        withdraw(&evm,
-            sender,
-            tx,
-            21000);
+        // let tx = x"f8eb8085e8d4a5100082520894a4cd3b0eb6e5ab5d8ce4065bccd70040adab1f0080b884c7012626000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000027100000000000000000000000000000000000000000000000000000000000000020c5cb1f1ce6951226e9c46ce8d42eda1ac9774a0fef91e2910939119ef0c955688202c3a0bdbf42ff5f141f989d3b546f8a8514857d036cfccd8e0c3e56d4644e08e40ea1a03908d910179e0e1b6b4ea43b4cbdcfc21f9fb74cf3cca3adde058a062a8bebf6";
+        // send_tx(&evm, sender, tx, 0, 1);
 
         debug::print(&coin::balance<AptosCoin>(@evm));
-        debug::print(&coin::balance<AptosCoin>(@0xf5c36986b8ee24b48c95eea89c50423c05ede7d09fd9e43f0375ae75dc90f88c));
+        debug::print(&coin::balance<AptosCoin>(@0xc5cb1f1ce6951226e9c46ce8d42eda1ac9774a0fef91e2910939119ef0c95568));
         // let coin_store_account = borrow_global<Account>(@evm);
         // debug::print(&coin_store_account.balance);
         coin::destroy_freeze_cap(freeze_cap);
