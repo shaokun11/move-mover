@@ -153,7 +153,7 @@ module evm::evm {
         tx_type: u64,
     ) acquires Account, ContractEvent {
         if(tx_type == TX_TYPE_LEGACY) {
-            let nonce = borrow_global<Account>(create_resource_address(&@evm, evm_from)).nonce;
+            let nonce = borrow_global<Account>(create_resource_address(&@evm, to_32bit(evm_from))).nonce;
             execute(to_32bit(evm_from), to_32bit(evm_to), nonce, data, value);
         } else {
             assert!(false, TX_NOT_SUPPORT);
